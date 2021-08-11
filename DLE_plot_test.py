@@ -56,7 +56,7 @@ det = sobjs[blue_exten-1].DET
 spat_pix = sobjs[blue_exten-1].SPAT_PIXPOS
 
 for i, sobj in enumerate(sobjs):
-    if (sobj.DET == det+4) & (sobj.SPAT_PIXPOS == spat_pix):
+    if (sobj.DET == det+4) & (np.abs(int(sobj.SPAT_PIXPOS) - spat_pix)<2):
         red_ind = i
         break
 
