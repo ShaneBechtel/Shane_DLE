@@ -9,15 +9,46 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='Spectrum Fits File')
 parser.add_argument('--redshift', help='Redshift of emission lines')
 parser.add_argument('--exten', help='Exten value for target in Blue Detector ')
+parser.add_argument('--width', help='Width of boxcar smoothing ')
 args = parser.parse_args()
 
 
+def ivarsmooth(flux, ivar, window):
+    '''
+    Boxcar smoothign of width window with ivar weights
+    Args:
+        flux:
+        ivar:
+        window:
+    Returns:
+    '''
+    nflux = (flux.shape)[0]
+    halfwindow = int(np.floor((np.round(window) - 1)/2))
+    shiftarr = np.zeros((nflux, 2*halfwindow + 1))
+    shiftivar = np.zeros((nflux, 2*halfwindow + 1))
+    shiftindex = np.zeros((nflux, 2*halfwindow + 1))
+    indexarr = np.arange(nflux)
+    indnorm = np.outer(indexarr,(np.zeros(2 *halfwindow + 1) + 1))
+    for i in np.arange(-halfwindow,halfwindow + 1,dtype=int):
+        shiftarr[:,i+halfwindow] = np.roll(flux,i)
+        shiftivar[:, i+halfwindow] = np.roll(ivar, i)
+        shiftindex[:, i+halfwindow] = np.roll(indexarr, i)
+    wh = (np.abs(shiftindex - indnorm) > (halfwindow+1))
+    shiftivar[wh]=0.0
+    outivar = np.sum(shiftivar,axis=1)
+    nzero, = np.where(outivar > 0.0)
+    zeroct=len(nzero)
+    smoothflux = np.sum(shiftarr * shiftivar, axis=1)
+    if(zeroct > 0):
+        smoothflux[nzero] = smoothflux[nzero]/outivar[nzero]
+    else:
+        smoothflux = np.roll(flux, 2*halfwindow + 1) # kill off NAN’s
+    return (smoothflux, outivar)
+
+
 blue_exten = int(args.exten)
-#red_exten = int(args.red)
-
-
-#fits_file = "../../DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/spec1d_DE.20190605.30172-DE.20190605.35227-J1438A.fits"
 fits_file = args.file
+
 sobjs = specobjs.SpecObjs.from_fitsfile(fits_file, chk_version=False)
 blue_spec = sobjs[blue_exten-1].to_xspec1d(extraction='OPT', fluxed=False)
 
@@ -37,8 +68,8 @@ new_flux = np.concatenate((blue_spec.flux[zero_skip],red_spec.flux[red_spec.wave
 new_sig = np.concatenate((blue_spec.sig[zero_skip],red_spec.sig[red_spec.wavelength>blue_spec.wavelength[-1]]))
 new_spec = XSpectrum1D.from_tuple((new_wavelength, new_flux, new_sig), verbose=False)
 
-#new_spec.plot()
-
+width=int(args.width)
+new_flux, new_sig = ivarsmooth(new_flux,new_sig,width)
 
 # Line List
 redshift = float(args.redshift)
@@ -48,10 +79,7 @@ Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
 
 fig, ax = plt.subplots()
 
-# the x coords of this transformation are data, and the
-# y coord are axes
 trans = ax.get_xaxis_transform()
-
 ax.plot(new_wavelength,new_flux)
 
 for tup in Lines.items():
