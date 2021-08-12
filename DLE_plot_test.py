@@ -89,7 +89,7 @@ fluxes[:,0] = blue_flux
 fluxes[:,1] = red_flux
 ivars[:,0] = blue_ivar
 ivars[:,1] = red_ivar
-masks = np.ones_like(waves,dtype=int)
+masks = np.ones_like(waves,dtype=bool)
 
 wgmax = np.max(red_wave.value)
 wgmin = np.min(blue_wave[blue_wave.value>10].value)
