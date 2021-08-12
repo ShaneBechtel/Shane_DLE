@@ -1,14 +1,17 @@
-import numpy as np
-from pypeit import specobjs
-import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
-from linetools.spectra.xspectrum1d import XSpectrum1D
 import argparse
+
+import matplotlib.pyplot as plt
+import numpy as np
+from linetools.spectra.xspectrum1d import XSpectrum1D
+from pypeit import specobjs
+from pypeit.core.coadd import multi_combspec
+from IPython import embed
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='Spectrum Fits File')
 parser.add_argument('--redshift', help='Redshift of emission lines')
-parser.add_argument('--exten', help='Exten value for target in Blue Detector ')
+parser.add_argument('--blue', help='Exten value for target in Blue Detector ')
+parser.add_argument('--red', help='Exten value for target in Blue Detector ')
 parser.add_argument('--width', help='Width of boxcar smoothing ')
 args = parser.parse_args()
 
@@ -46,30 +49,70 @@ def ivarsmooth(flux, ivar, window):
     return (smoothflux, outivar)
 
 
-blue_exten = int(args.exten)
+blue_exten = int(args.blue)
+red_exten = int(args.red)
 fits_file = args.file
 
 sobjs = specobjs.SpecObjs.from_fitsfile(fits_file, chk_version=False)
 blue_spec = sobjs[blue_exten-1].to_xspec1d(extraction='OPT', fluxed=False)
+red_spec = sobjs[red_exten-1].to_xspec1d(extraction='OPT', fluxed=False)
 
-det = sobjs[blue_exten-1].DET
-spat_pix = sobjs[blue_exten-1].SPAT_PIXPOS
+if len(blue_spec.wavelength)>len(red_spec.wavelength):
+    diff = len(blue_spec.wavelength)-len(red_spec.wavelength)
 
-for i, sobj in enumerate(sobjs):
-    if (sobj.DET == det+4) & (np.abs(int(sobj.SPAT_PIXPOS) - spat_pix)<2):
-        red_ind = i
-        break
+    blue_wave = blue_spec.wavelength[diff:]
+    blue_flux = blue_spec.flux[diff:]
+    blue_ivar = blue_spec.ivar[diff:]
 
-red_spec = sobjs[red_ind].to_xspec1d(extraction='OPT', fluxed=False)
-zero_skip = blue_spec.wavelength.value > 10
+    red_wave = red_spec.wavelength
+    red_flux = red_spec.flux
+    red_ivar = red_spec.ivar
+else:
+    diff = len(red_spec.wavelength)-len(blue_spec.wavelength)
+    length = len(red_spec.wavelength)
 
+    blue_wave = blue_spec.wavelength
+    blue_flux = blue_spec.flux
+    blue_ivar = blue_spec.ivar
+
+    red_wave = red_spec.wavelength[:length-diff]
+    red_flux = red_spec.flux[:length-diff]
+    red_ivar = red_spec.ivar[:length-diff]
+
+waves = np.zeros((len(blue_wave),2))
+fluxes = np.zeros((len(blue_wave),2))
+ivars = np.zeros((len(blue_wave),2))
+
+waves[:,0] = blue_wave
+waves[:,1] = red_wave
+fluxes[:,0] = blue_flux
+fluxes[:,1] = red_flux
+ivars[:,0] = blue_ivar
+ivars[:,1] = red_ivar
+masks = np.ones_like(waves,dtype=int)
+
+wgmax = np.max(red_wave.value)
+wgmin = np.min(blue_wave[blue_wave.value>10].value)
+
+new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves,fluxes,ivars,masks,wave_grid_max=wgmax,wave_grid_min=wgmin)
+
+zero_skip = new_waves> 10
+new_waves = new_waves[zero_skip]
+new_flux = new_flux[zero_skip]
+new_ivars = new_ivars[zero_skip]
+new_masks = new_masks[zero_skip]
+
+'''
 new_wavelength = np.concatenate((blue_spec.wavelength[zero_skip],red_spec.wavelength[red_spec.wavelength>blue_spec.wavelength[-1]]))
 new_flux = np.concatenate((blue_spec.flux[zero_skip],red_spec.flux[red_spec.wavelength>blue_spec.wavelength[-1]]))
 new_sig = np.concatenate((blue_spec.sig[zero_skip],red_spec.sig[red_spec.wavelength>blue_spec.wavelength[-1]]))
 new_spec = XSpectrum1D.from_tuple((new_wavelength, new_flux, new_sig), verbose=False)
+'''
 
 width=int(args.width)
-new_flux, new_sig = ivarsmooth(new_flux,new_sig,width)
+new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
+
+new_sig = new_ivars/np.sqrt(new_ivars)
 
 # Line List
 redshift = float(args.redshift)
@@ -80,7 +123,7 @@ Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
 fig, ax = plt.subplots()
 
 trans = ax.get_xaxis_transform()
-ax.plot(new_wavelength,new_flux)
+ax.plot(new_waves,new_flux)
 
 for tup in Lines.items():
 
