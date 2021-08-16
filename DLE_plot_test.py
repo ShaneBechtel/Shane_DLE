@@ -112,7 +112,7 @@ new_spec = XSpectrum1D.from_tuple((new_wavelength, new_flux, new_sig), verbose=F
 width=int(args.width)
 new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
 
-new_sig = new_ivars/np.sqrt(new_ivars)
+new_sig = 1/np.sqrt(new_ivars)
 
 # Line List
 redshift = float(args.redshift)
@@ -123,13 +123,16 @@ Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
 fig, ax = plt.subplots()
 
 trans = ax.get_xaxis_transform()
-ax.plot(new_waves,new_flux)
+#ax.plot(new_waves,new_flux,'k',linestyles="step mid")
+ax.step(new_waves,new_flux,'k',where='mid')
+#ax.fill_between(new_waves, new_flux-new_sig, new_flux+new_sig)
+ax.errorbar(new_waves[::3],new_flux[::3],new_sig[::3],fmt='none')
 
 for tup in Lines.items():
 
     if np.shape(tup[1])[0]==1:
         z_wavelength = (1+redshift)*tup[1][0]
-        ax.vlines(z_wavelength,new_flux.min(),new_flux.max(),'k',linestyles='--')
+        ax.vlines(z_wavelength,new_flux.min(),new_flux.max(),'b',linestyles='--')
         plt.text(z_wavelength, .85, tup[0], transform=trans,backgroundcolor='0.75')
     else:
         for l in tup[1]:
