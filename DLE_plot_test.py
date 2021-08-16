@@ -9,10 +9,11 @@ from IPython import embed
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='Spectrum Fits File')
+parser.add_argument('--lines',default=True, help='Plot spectral lines')
 parser.add_argument('--redshift', help='Redshift of emission lines')
-parser.add_argument('--blue', help='Exten value for target in Blue Detector ')
-parser.add_argument('--red', help='Exten value for target in Blue Detector ')
-parser.add_argument('--width', help='Width of boxcar smoothing ')
+parser.add_argument('--blue', help='Exten value for target in Blue Detector')
+parser.add_argument('--red', help='Exten value for target in Blue Detector')
+parser.add_argument('--width', help='Width of boxcar smoothing')
 args = parser.parse_args()
 
 
@@ -128,16 +129,18 @@ ax.step(new_waves,new_flux,'k',where='mid')
 #ax.fill_between(new_waves, new_flux-new_sig, new_flux+new_sig)
 ax.errorbar(new_waves[::3],new_flux[::3],new_sig[::3],fmt='none')
 
-for tup in Lines.items():
+ln_flag = bool(args.lines[0]=='n')
 
-    if np.shape(tup[1])[0]==1:
-        z_wavelength = (1+redshift)*tup[1][0]
-        ax.vlines(z_wavelength,new_flux.min(),new_flux.max(),'b',linestyles='--')
-        plt.text(z_wavelength, .85, tup[0], transform=trans,backgroundcolor='0.75')
-    else:
-        for l in tup[1]:
-            z_wavelength = (1 + redshift) * l
-            ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'k', linestyles='--')
-            plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
+if not ln_flag:
+    for tup in Lines.items():
 
+        if np.shape(tup[1])[0]==1:
+            z_wavelength = (1+redshift)*tup[1][0]
+            ax.vlines(z_wavelength,new_flux.min(),new_flux.max(),'b',linestyles='--')
+            plt.text(z_wavelength, .85, tup[0], transform=trans,backgroundcolor='0.75')
+        else:
+            for l in tup[1]:
+                z_wavelength = (1 + redshift) * l
+                ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'k', linestyles='--')
+                plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
 plt.show()
