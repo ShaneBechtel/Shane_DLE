@@ -97,7 +97,6 @@ wgmin = np.min(blue_wave[blue_wave.value>10].value)
 
 #Continium Continuity
 
-red_spec.wavelength[red_spec.wavelength.value>10].value<blue_spec.wavelength[-1].value
 overlap_top = blue_spec.wavelength[-1].value
 overlap_mask = red_spec.wavelength[red_spec.wavelength.value>10].value < overlap_top
 overlap_num = int(np.sum(overlap_mask))
@@ -119,22 +118,6 @@ new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
 
 new_sig = 1/np.sqrt(new_ivars)
 
-# Line List
-redshift = float(args.redshift)
-#Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
-#         "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
-line_file = open('gal_vac.lst')
-ln_lst = line_file.readlines()
-line_file.close()
-Lines = {}
-for ln in ln_lst:
-    lam = float(ln[:8])
-    name = ln[-9:-1]
-    if name in Lines.keys():
-        Lines[name]=np.concatenate([Lines[name],np.array([lam])])
-    else:
-        Lines[name]=np.array([lam])
-
 # Atmospheric Effects
 skycalc = skycalc_ipy.SkyCalc()
 atmos = skycalc.get_sky_spectrum()
@@ -149,6 +132,23 @@ ax.plot(10000*atmos[0][:], atmos[1][:], transform=trans) #If we want atmos to tr
 ln_flag = bool(args.lines[0]=='n')
 
 if not ln_flag:
+
+    # Line List
+    redshift = float(args.redshift)
+    # Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
+    #         "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
+    line_file = open('gal_vac.lst')
+    ln_lst = line_file.readlines()
+    line_file.close()
+    Lines = {}
+    for ln in ln_lst:
+        lam = float(ln[:8])
+        name = ln[-9:-1]
+        if name in Lines.keys():
+            Lines[name] = np.concatenate([Lines[name], np.array([lam])])
+        else:
+            Lines[name] = np.array([lam])
+
     for tup in Lines.items():
 
         if np.shape(tup[1])[0]==1:
