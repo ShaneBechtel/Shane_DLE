@@ -2,7 +2,6 @@ import argparse
 
 import matplotlib.pyplot as plt
 import numpy as np
-from linetools.spectra.xspectrum1d import XSpectrum1D
 from pypeit import specobjs
 from pypeit.core.coadd import multi_combspec
 from IPython import embed
@@ -10,7 +9,7 @@ import skycalc_ipy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='Spectrum Fits File')
-parser.add_argument('--lines',default=True, help='Plot spectral lines')
+parser.add_argument('--lines',default='yes', help='Plot spectral lines')
 parser.add_argument('--redshift', help='Redshift of emission lines')
 parser.add_argument('--blue', help='Exten value for target in Blue Detector')
 parser.add_argument('--red', help='Exten value for target in Blue Detector')
@@ -122,8 +121,19 @@ new_sig = 1/np.sqrt(new_ivars)
 
 # Line List
 redshift = float(args.redshift)
-Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
-         "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
+#Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
+#         "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
+line_file = open('gal_vac.lst')
+ln_lst = line_file.readlines()
+line_file.close()
+Lines = {}
+for ln in ln_lst:
+    lam = float(ln[:8])
+    name = ln[-9:-1]
+    if name in Lines.keys():
+        Lines[name]=np.concatenate([Lines[name],np.array([lam])])
+    else:
+        Lines[name]=np.array([lam])
 
 # Atmospheric Effects
 skycalc = skycalc_ipy.SkyCalc()
@@ -133,9 +143,8 @@ fig, ax = plt.subplots()
 
 trans = ax.get_xaxis_transform()
 ax.step(new_waves,new_flux,'k',where='mid')
-#ax.fill_between(new_waves, new_flux-new_sig, new_flux+new_sig)
 ax.errorbar(new_waves[::3],new_flux[::3],new_sig[::3],fmt='none')
-ax.plot(10000*atmos[0][:], atmos[1][:], transform=trans)
+ax.plot(10000*atmos[0][:], atmos[1][:], transform=trans) #If we want atmos to transform
 
 ln_flag = bool(args.lines[0]=='n')
 
@@ -149,6 +158,13 @@ if not ln_flag:
         else:
             for l in tup[1]:
                 z_wavelength = (1 + redshift) * l
-                ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'k', linestyles='--')
+                ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'b', linestyles='--')
                 plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
+plt.xlim(new_waves.min(),new_waves.max())
+
+# Static Atmos representation
+#ax2 = ax.twinx()
+#atmos_ratio = np.mean(new_flux)/np.mean(atmos[1][:])
+#ax2.plot(10000*atmos[0][:], atmos_ratio*atmos[1][:])
+
 plt.show()

@@ -106,13 +106,12 @@ new_masks = new_masks[zero_skip]
 width=5
 new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
 
-new_sig = 1/np.sqrt(new_ivars)
-
 sobj = specobj.SpecObj.from_arrays('MultiSlit',new_waves,new_flux,new_ivars)
 
 new_sobjs = specobjs.SpecObjs()
 new_sobjs.add_sobj(sobj)
 
-subheader = {'test':'test'}
+subheader = {'PYP_SPEC':'keck_deimos','PYPELINE':'MultiSlit','INSTRUME':'DEIMOS  ',
+             'airmass':1.08991231,'exptime':1600.0}
 
-new_sobjs.write_to_fits(subheader,'star_spec.fits')
+new_sobjs.write_to_fits(subheader,'star_spec.fits',overwrite=True)
