@@ -6,6 +6,7 @@ from linetools.spectra.xspectrum1d import XSpectrum1D
 from pypeit import specobjs
 from pypeit.core.coadd import multi_combspec
 from IPython import embed
+import skycalc_ipy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='Spectrum Fits File')
@@ -95,6 +96,17 @@ masks = np.ones_like(waves,dtype=bool)
 wgmax = np.max(red_wave.value)
 wgmin = np.min(blue_wave[blue_wave.value>10].value)
 
+#Continium Continuity
+
+red_spec.wavelength[red_spec.wavelength.value>10].value<blue_spec.wavelength[-1].value
+overlap_top = blue_spec.wavelength[-1].value
+overlap_mask = red_spec.wavelength[red_spec.wavelength.value>10].value < overlap_top
+overlap_num = int(np.sum(overlap_mask))
+blue_sum = np.sum(blue_spec.flux.value[-1*overlap_num:])
+red_sum = np.sum(red_spec.flux[red_spec.wavelength.value>10].value[overlap_mask])
+ratio = blue_sum/red_sum
+fluxes[:,1] *= ratio
+
 new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves,fluxes,ivars,masks,wave_grid_max=wgmax,wave_grid_min=wgmin)
 
 zero_skip = new_waves> 10
@@ -102,13 +114,6 @@ new_waves = new_waves[zero_skip]
 new_flux = new_flux[zero_skip]
 new_ivars = new_ivars[zero_skip]
 new_masks = new_masks[zero_skip]
-
-'''
-new_wavelength = np.concatenate((blue_spec.wavelength[zero_skip],red_spec.wavelength[red_spec.wavelength>blue_spec.wavelength[-1]]))
-new_flux = np.concatenate((blue_spec.flux[zero_skip],red_spec.flux[red_spec.wavelength>blue_spec.wavelength[-1]]))
-new_sig = np.concatenate((blue_spec.sig[zero_skip],red_spec.sig[red_spec.wavelength>blue_spec.wavelength[-1]]))
-new_spec = XSpectrum1D.from_tuple((new_wavelength, new_flux, new_sig), verbose=False)
-'''
 
 width=int(args.width)
 new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
@@ -120,14 +125,17 @@ redshift = float(args.redshift)
 Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
          "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
 
+# Atmospheric Effects
+skycalc = skycalc_ipy.SkyCalc()
+atmos = skycalc.get_sky_spectrum()
 
 fig, ax = plt.subplots()
 
 trans = ax.get_xaxis_transform()
-#ax.plot(new_waves,new_flux,'k',linestyles="step mid")
 ax.step(new_waves,new_flux,'k',where='mid')
 #ax.fill_between(new_waves, new_flux-new_sig, new_flux+new_sig)
 ax.errorbar(new_waves[::3],new_flux[::3],new_sig[::3],fmt='none')
+ax.plot(10000*atmos[0][:], atmos[1][:], transform=trans)
 
 ln_flag = bool(args.lines[0]=='n')
 
