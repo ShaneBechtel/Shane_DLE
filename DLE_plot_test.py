@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pypeit import specobjs
 from pypeit.core.coadd import multi_combspec
+from pypeit import io
 from IPython import embed
 import skycalc_ipy
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file', help='Spectrum Fits File')
 parser.add_argument('--lines',default='yes', help='Plot spectral lines')
-parser.add_argument('--redshift', help='Redshift of emission lines')
+parser.add_argument('--redshift',default=0.0,help='Redshift of emission lines')
 parser.add_argument('--blue', help='Exten value for target in Blue Detector')
 parser.add_argument('--red', help='Exten value for target in Blue Detector')
 parser.add_argument('--width', help='Width of boxcar smoothing')
@@ -119,22 +120,39 @@ new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
 new_sig = 1/np.sqrt(new_ivars)
 
 # Atmospheric Effects
+
+tell_hdu = io.fits_open('star_spec_tellmodel.fits')
+tell_waves = tell_hdu[1].data['WAVE'][0]
+tell_spec = tell_hdu[1].data['TELLURIC'][0]
+
+# Skycalc Atmos
 skycalc = skycalc_ipy.SkyCalc()
 atmos = skycalc.get_sky_spectrum()
 
-fig, ax = plt.subplots()
+# Composite Spectrum
+comp_hdu = io.fits_open('Composite/MUSYC_LBGonly_stack.fits')
+comp_data = comp_hdu[0].data[0,0,:]
+comp_redshift = 3381.89/1216.00-1
+#comp_redshift = 3380.14/1216.00-1
+#comp_redshift = 3386.19/1216.00 -1
+comp_waves = (3200.43 + 0.86*np.arange(len(comp_hdu[0].data[0,0,:])))/(1+comp_redshift)
+comp_data = (np.mean(new_flux)/np.mean(comp_data))*comp_data
 
+
+fig, ax = plt.subplots()
+redshift = float(args.redshift)
 trans = ax.get_xaxis_transform()
 ax.step(new_waves,new_flux,'k',where='mid')
 ax.errorbar(new_waves[::3],new_flux[::3],new_sig[::3],fmt='none')
-ax.plot(10000*atmos[0][:], atmos[1][:], transform=trans) #If we want atmos to transform
+#ax.plot(tell_waves, tell_spec,'g', transform=trans,alpha=0.5)
+ax.plot(10000*atmos[0][:], atmos[1][:],'g--', transform=trans,alpha=0.5)  #Skycalc atmos
+ax.plot((1+redshift)*comp_waves,comp_data,'r',alpha=0.5)
 
 ln_flag = bool(args.lines[0]=='n')
 
 if not ln_flag:
 
     # Line List
-    redshift = float(args.redshift)
     # Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
     #         "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
     line_file = open('gal_vac.lst')
@@ -153,12 +171,12 @@ if not ln_flag:
 
         if np.shape(tup[1])[0]==1:
             z_wavelength = (1+redshift)*tup[1][0]
-            ax.vlines(z_wavelength,new_flux.min(),new_flux.max(),'b',linestyles='--')
+            ax.vlines(z_wavelength,new_flux.min(),new_flux.max(),'b',linestyles='--',alpha=0.5)
             plt.text(z_wavelength, .85, tup[0], transform=trans,backgroundcolor='0.75')
         else:
             for l in tup[1]:
                 z_wavelength = (1 + redshift) * l
-                ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'b', linestyles='--')
+                ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'b', linestyles='--',alpha=0.5)
                 plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
 plt.xlim(new_waves.min(),new_waves.max())
 
