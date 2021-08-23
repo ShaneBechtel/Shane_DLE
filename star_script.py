@@ -1,42 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from pypeit import specobj
 from pypeit import specobjs
 from pypeit.core.coadd import multi_combspec
 from IPython import embed
-import skycalc_ipy
 
-def ivarsmooth(flux, ivar, window):
-    '''
-    Boxcar smoothign of width window with ivar weights
-    Args:
-        flux:
-        ivar:
-        window:
-    Returns:
-    '''
-    nflux = (flux.shape)[0]
-    halfwindow = int(np.floor((np.round(window) - 1)/2))
-    shiftarr = np.zeros((nflux, 2*halfwindow + 1))
-    shiftivar = np.zeros((nflux, 2*halfwindow + 1))
-    shiftindex = np.zeros((nflux, 2*halfwindow + 1))
-    indexarr = np.arange(nflux)
-    indnorm = np.outer(indexarr,(np.zeros(2 *halfwindow + 1) + 1))
-    for i in np.arange(-halfwindow,halfwindow + 1,dtype=int):
-        shiftarr[:,i+halfwindow] = np.roll(flux,i)
-        shiftivar[:, i+halfwindow] = np.roll(ivar, i)
-        shiftindex[:, i+halfwindow] = np.roll(indexarr, i)
-    wh = (np.abs(shiftindex - indnorm) > (halfwindow+1))
-    shiftivar[wh]=0.0
-    outivar = np.sum(shiftivar,axis=1)
-    nzero, = np.where(outivar > 0.0)
-    zeroct=len(nzero)
-    smoothflux = np.sum(shiftarr * shiftivar, axis=1)
-    if(zeroct > 0):
-        smoothflux[nzero] = smoothflux[nzero]/outivar[nzero]
-    else:
-        smoothflux = np.roll(flux, 2*halfwindow + 1) # kill off NAN’s
-    return (smoothflux, outivar)
 
 
 blue_exten = 10
@@ -86,7 +53,6 @@ wgmin = np.min(blue_wave[blue_wave.value>10].value)
 
 #Continium Continuity
 
-red_spec.wavelength[red_spec.wavelength.value>10].value<blue_spec.wavelength[-1].value
 overlap_top = blue_spec.wavelength[-1].value
 overlap_mask = red_spec.wavelength[red_spec.wavelength.value>10].value < overlap_top
 overlap_num = int(np.sum(overlap_mask))
@@ -102,10 +68,11 @@ new_waves = new_waves[zero_skip]
 new_flux = new_flux[zero_skip]
 new_ivars = new_ivars[zero_skip]
 new_masks = new_masks[zero_skip]
-
-width=5
-new_flux, new_ivars = ivarsmooth(new_flux,new_ivars,width)
-
+#Masking strange dip feature in stellar spectrum
+mask_lowind = np.where(np.abs(new_waves-6700)==np.min(np.abs(new_waves-6700)))[0][0]
+mask_highind = np.where(np.abs(new_waves-7120)==np.min(np.abs(new_waves-7120)))[0][0]
+new_masks[mask_lowind:mask_highind] = 0
+new_ivars[mask_lowind:mask_highind] = 0
 sobj = specobj.SpecObj.from_arrays('MultiSlit',new_waves,new_flux,new_ivars)
 
 new_sobjs = specobjs.SpecObjs()
