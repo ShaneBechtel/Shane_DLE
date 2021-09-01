@@ -79,6 +79,8 @@ new_sobjs = specobjs.SpecObjs()
 new_sobjs.add_sobj(sobj)
 
 subheader = {'PYP_SPEC':'keck_deimos','PYPELINE':'MultiSlit','INSTRUME':'DEIMOS  ',
-             'airmass':1.08991231,'exptime':1600.0}
+             'airmass':1.08991231,'exptime':1600.0,'ra':'219.610125','dec':'43.23066666666667',
+             'target':'PS1_00013','DISPNAME':'600ZD','decker':'J1438A','binning':'1,1',
+             'mjd':58639.34915,'FILENAME':'star_spec.fits'}
 
 new_sobjs.write_to_fits(subheader,'star_spec.fits',overwrite=True)
