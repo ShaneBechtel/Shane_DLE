@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pypeit import specobjs
 from pypeit.core.coadd import multi_combspec
-from pypeit import io
+from astropy.io import fits
 import skycalc_ipy
 import os.path
 from IPython import embed
@@ -17,7 +17,8 @@ parser.add_argument('--blue', help='Exten value for target in Blue Detector')
 parser.add_argument('--red', help='Exten value for target in Blue Detector')
 parser.add_argument('--width', help='Width of boxcar smoothing')
 args = parser.parse_args()
-
+#Example Call
+#python DLE_plot_test.py --file ../../DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/spec1d_DE.20190605.30172-DE.20190605.35227-J1438A.fits --redshift 4.95 --blue 9 --red 30 --width 5
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -123,13 +124,20 @@ new_sig = 1 / np.sqrt(new_ivars)
 
 # Atmospheric Effects
 
-tell_hdu = io.fits_open('star_spec_tellmodel.fits')
+tell_hdu = fits.open('star_spec_tellmodel.fits')
 tell_waves = tell_hdu[1].data['WAVE'][0]
 tell_spec = tell_hdu[1].data['TELLURIC'][0]
 
+tell_corr_vals = np.load('tell_corr.npz')
+tell_corr_waves = tell_corr_vals['tell_wave']
+tell_corr_flux = tell_corr_vals['tell_corr']
+
+tell_corr = np.interp(new_waves,tell_corr_waves,tell_corr_flux)
+tell_corr[tell_corr==0] = 1.
+
 '''# Skycalc Atmos
 if os.path.isfile("skycalc_temp.fits"):
-    atmos_hdu = io.fits_open("skycalc_temp.fits")
+    atmos_hdu = fits.open("skycalc_temp.fits")
     atmos = np.zeros((2,len(atmos_hdu[1].data['lam'])))
     atmos[0,:] = atmos_hdu[1].data['lam']
     atmos[1,:] = atmos_hdu[1].data['trans']
@@ -138,7 +146,7 @@ else:
     atmos = skycalc.get_sky_spectrum()
 '''
 # Composite Spectrum
-comp_hdu = io.fits_open('Composite/MUSYC_LBGonly_stack.fits')
+comp_hdu = fits.open('Composite/MUSYC_LBGonly_stack.fits')
 comp_data = comp_hdu[0].data[0, 0, :]
 comp_redshift = 3381.89 / 1216.00 - 1
 # comp_redshift = 3380.14/1216.00-1
@@ -150,6 +158,7 @@ fig, ax = plt.subplots()
 redshift = float(args.redshift)
 trans = ax.get_xaxis_transform()
 ax.step(new_waves, new_flux, 'k', where='mid')
+ax.step(new_waves, tell_corr*new_flux, 'k--', where='mid')
 ax.plot(new_waves, new_sig, 'r:')
 ax.plot(tell_waves, tell_spec, 'g--', transform=trans, alpha=0.5)
 # ax.plot(10000*atmos[0][:], atmos[1][:],'g--', transform=trans,alpha=0.5)  #Skycalc atmos
