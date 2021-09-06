@@ -5,8 +5,7 @@ import numpy as np
 from pypeit import specobjs
 from pypeit.core.coadd import multi_combspec
 from astropy.io import fits
-import skycalc_ipy
-import os.path
+from pypeit import utils
 from IPython import embed
 
 parser = argparse.ArgumentParser()
@@ -122,55 +121,48 @@ new_flux, new_ivars = ivarsmooth(new_flux, new_ivars, width)
 
 new_sig = 1 / np.sqrt(new_ivars)
 
+# Quasar Redshifts
+
+lya = 1215.67
+J14_wave = lya*(1+4.709)
+J16_wave = lya*(1+3.8101)
+
 # Atmospheric Effects
 
-tell_hdu = fits.open('star_spec_tellmodel.fits')
-tell_waves = tell_hdu[1].data['WAVE'][0]
-tell_spec = tell_hdu[1].data['TELLURIC'][0]
+tell_hdu = fits.open('star_spec_tellcorr.fits')
+tell_waves = tell_hdu[1].data['wave']
+tell_spec = tell_hdu[1].data['telluric']
+tell_corr = np.interp(new_waves,tell_waves,tell_spec,left=1,right=1)
 
-tell_corr_vals = np.load('tell_corr.npz')
-tell_corr_waves = tell_corr_vals['tell_wave']
-tell_corr_flux = tell_corr_vals['tell_corr']
+flux_corr = new_flux/(tell_corr + (tell_corr == 0))
+ivar_corr = (tell_corr > 0.0) * new_ivars * tell_corr * tell_corr
+mask_corr = (tell_corr > 0.0) * new_masks
+sig_corr = np.sqrt(utils.inverse(ivar_corr))
 
-tell_corr = np.interp(new_waves,tell_corr_waves,tell_corr_flux)
-tell_corr[tell_corr==0] = 1.
-
-'''# Skycalc Atmos
-if os.path.isfile("skycalc_temp.fits"):
-    atmos_hdu = fits.open("skycalc_temp.fits")
-    atmos = np.zeros((2,len(atmos_hdu[1].data['lam'])))
-    atmos[0,:] = atmos_hdu[1].data['lam']
-    atmos[1,:] = atmos_hdu[1].data['trans']
-else:
-    skycalc = skycalc_ipy.SkyCalc()
-    atmos = skycalc.get_sky_spectrum()
-'''
 # Composite Spectrum
 comp_hdu = fits.open('Composite/MUSYC_LBGonly_stack.fits')
 comp_data = comp_hdu[0].data[0, 0, :]
 comp_redshift = 3381.89 / 1216.00 - 1
-# comp_redshift = 3380.14/1216.00-1
-# comp_redshift = 3386.19/1216.00 -1
 comp_waves = (3200.43 + 0.86 * np.arange(len(comp_hdu[0].data[0, 0, :]))) / (1 + comp_redshift)
 comp_data = (np.mean(new_flux) / np.mean(comp_data)) * comp_data
 
 fig, ax = plt.subplots()
 redshift = float(args.redshift)
 trans = ax.get_xaxis_transform()
-ax.step(new_waves, new_flux, 'k', where='mid')
-ax.step(new_waves, tell_corr*new_flux, 'k--', where='mid')
-ax.plot(new_waves, new_sig, 'r:')
+ax.step(new_waves, flux_corr, 'k', where='mid')
+ax.plot(new_waves, sig_corr, 'r:')
 ax.plot(tell_waves, tell_spec, 'g--', transform=trans, alpha=0.5)
-# ax.plot(10000*atmos[0][:], atmos[1][:],'g--', transform=trans,alpha=0.5)  #Skycalc atmos
 ax.plot((1 + redshift) * comp_waves, comp_data, 'orange', alpha=0.5)
+
+ax.vlines(J16_wave, new_flux.min(), new_flux.max(), 'y', linestyles='--', alpha=0.5)
+plt.text(J16_wave, .85, 'J1630', transform=trans, backgroundcolor='0.75')
+ax.vlines(J14_wave, new_flux.min(), new_flux.max(), 'y', linestyles='--', alpha=0.5)
+plt.text(J14_wave, .85, 'J1438A', transform=trans, backgroundcolor='0.75')
 
 ln_flag = bool(args.lines[0] == 'n')
 
 if not ln_flag:
 
-    # Line List
-    # Lines = {"C III":[1175.71], "Si II":[1190,1260.42], "Lya":[1215.670],
-    #         "N V":[1240.81], "O I":[1305.53], "C II":[1335.31]}
     line_file = open('gal_vac.lst')
     ln_lst = line_file.readlines()
     line_file.close()
@@ -187,7 +179,7 @@ if not ln_flag:
 
         if np.shape(tup[1])[0] == 1:
             z_wavelength = (1 + redshift) * tup[1][0]
-            ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'b', linestyles='--', alpha=0.5)
+            ax.vlines(z_wavelength, flux_corr.min(), flux_corr.max(), 'b', linestyles='--', alpha=0.5)
             plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
         else:
             for l in tup[1]:
@@ -195,10 +187,5 @@ if not ln_flag:
                 ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'b', linestyles='--', alpha=0.5)
                 plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
 plt.xlim(new_waves.min(), new_waves.max())
-
-# Static Atmos representation
-# ax2 = ax.twinx()
-# atmos_ratio = np.mean(new_flux)/np.mean(atmos[1][:])
-# ax2.plot(10000*atmos[0][:], atmos_ratio*atmos[1][:])
 
 plt.show()
