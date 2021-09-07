@@ -60,27 +60,38 @@ sobjs = specobjs.SpecObjs.from_fitsfile(fits_file, chk_version=False)
 blue_spec = sobjs[blue_exten - 1].to_xspec1d(extraction='OPT', fluxed=False)
 red_spec = sobjs[red_exten - 1].to_xspec1d(extraction='OPT', fluxed=False)
 
-if len(blue_spec.wavelength) > len(red_spec.wavelength):
-    diff = len(blue_spec.wavelength) - len(red_spec.wavelength)
-
-    blue_wave = blue_spec.wavelength[diff:]
-    blue_flux = blue_spec.flux[diff:]
-    blue_ivar = blue_spec.ivar[diff:]
+if len(blue_spec.wavelength) < len(red_spec.wavelength):
 
     red_wave = red_spec.wavelength
     red_flux = red_spec.flux
     red_ivar = red_spec.ivar
-else:
+
+    blue_wave = np.zeros_like(red_wave)
+    blue_flux = np.zeros_like(red_wave)
+    blue_ivar = np.zeros_like(red_wave)
+
     diff = len(red_spec.wavelength) - len(blue_spec.wavelength)
-    length = len(red_spec.wavelength)
+
+    blue_wave[diff:] = blue_spec.wavelength
+    blue_flux[diff:] = blue_spec.flux
+    blue_ivar[diff:] = blue_spec.ivar
+
+
+else:
 
     blue_wave = blue_spec.wavelength
     blue_flux = blue_spec.flux
     blue_ivar = blue_spec.ivar
 
-    red_wave = red_spec.wavelength[:length - diff]
-    red_flux = red_spec.flux[:length - diff]
-    red_ivar = red_spec.ivar[:length - diff]
+    red_wave = np.zeros_like(blue_wave)
+    red_flux = np.zeros_like(blue_wave)
+    red_ivar = np.zeros_like(blue_wave)
+
+    diff = len(blue_spec.wavelength) - len(red_spec.wavelength)
+
+    red_wave[diff:] = red_spec.wavelength
+    red_flux[diff:] = red_spec.flux
+    red_ivar[diff:] = red_spec.ivar
 
 waves = np.zeros((len(blue_wave), 2))
 fluxes = np.zeros((len(blue_wave), 2))
@@ -92,7 +103,7 @@ fluxes[:, 0] = blue_flux
 fluxes[:, 1] = red_flux
 ivars[:, 0] = blue_ivar
 ivars[:, 1] = red_ivar
-masks = np.ones_like(waves, dtype=bool)
+masks = ivars > 0.0
 
 wgmax = np.max(red_wave.value)
 wgmin = np.min(blue_wave[blue_wave.value > 10].value)
