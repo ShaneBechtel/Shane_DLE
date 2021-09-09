@@ -15,9 +15,10 @@ parser.add_argument('--redshift', default=0.0, help='Redshift of emission lines'
 parser.add_argument('--blue', help='Exten value for target in Blue Detector')
 parser.add_argument('--red', help='Exten value for target in Blue Detector')
 parser.add_argument('--width', help='Width of boxcar smoothing')
+parser.add_argument('--contnorm', default='yes', help='Normalize the continuum flux?')
 args = parser.parse_args()
 #Example Call
-#python DLE_plot_test.py --file ../../DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/spec1d_DE.20190605.30172-DE.20190605.35227-J1438A.fits --redshift 4.95 --blue 9 --red 30 --width 5
+#python DLE_plot_test.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/spec1d_DE.20190605.30172-DE.20190605.35227-J1438A.fits --redshift 4.95 --blue 9 --red 30 --width 5
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -62,9 +63,9 @@ red_spec = sobjs[red_exten - 1].to_xspec1d(extraction='OPT', fluxed=False)
 
 if len(blue_spec.wavelength) < len(red_spec.wavelength):
 
-    red_wave = red_spec.wavelength
-    red_flux = red_spec.flux
-    red_ivar = red_spec.ivar
+    red_wave = red_spec.wavelength.value
+    red_flux = red_spec.flux.value
+    red_ivar = red_spec.ivar.value
 
     blue_wave = np.zeros_like(red_wave)
     blue_flux = np.zeros_like(red_wave)
@@ -72,16 +73,16 @@ if len(blue_spec.wavelength) < len(red_spec.wavelength):
 
     diff = len(red_spec.wavelength) - len(blue_spec.wavelength)
 
-    blue_wave[diff:] = blue_spec.wavelength
-    blue_flux[diff:] = blue_spec.flux
-    blue_ivar[diff:] = blue_spec.ivar
+    blue_wave[diff:] = blue_spec.wavelength.value
+    blue_flux[diff:] = blue_spec.flux.value
+    blue_ivar[diff:] = blue_spec.ivar.value
 
 
 else:
 
-    blue_wave = blue_spec.wavelength
-    blue_flux = blue_spec.flux
-    blue_ivar = blue_spec.ivar
+    blue_wave = blue_spec.wavelength.value
+    blue_flux = blue_spec.flux.value
+    blue_ivar = blue_spec.ivar.value
 
     red_wave = np.zeros_like(blue_wave)
     red_flux = np.zeros_like(blue_wave)
@@ -89,9 +90,9 @@ else:
 
     diff = len(blue_spec.wavelength) - len(red_spec.wavelength)
 
-    red_wave[diff:] = red_spec.wavelength
-    red_flux[diff:] = red_spec.flux
-    red_ivar[diff:] = red_spec.ivar
+    red_wave[diff:] = red_spec.wavelength.value
+    red_flux[diff:] = red_spec.flux.value
+    red_ivar[diff:] = red_spec.ivar.value
 
 waves = np.zeros((len(blue_wave), 2))
 fluxes = np.zeros((len(blue_wave), 2))
@@ -105,18 +106,24 @@ ivars[:, 0] = blue_ivar
 ivars[:, 1] = red_ivar
 masks = ivars > 0.0
 
-wgmax = np.max(red_wave.value)
-wgmin = np.min(blue_wave[blue_wave.value > 10].value)
+wgmax = np.max(red_wave)
+wgmin = np.min(blue_wave[blue_wave > 10])
 
-# Continium Continuity
 
-overlap_top = blue_spec.wavelength[-1].value
-overlap_mask = red_spec.wavelength[red_spec.wavelength.value > 10].value < overlap_top
-overlap_num = int(np.sum(overlap_mask))
-blue_sum = np.sum(blue_spec.flux.value[-1 * overlap_num:])
-red_sum = np.sum(red_spec.flux[red_spec.wavelength.value > 10].value[overlap_mask])
-ratio = blue_sum / red_sum
-fluxes[:, 1] *= ratio
+cont_flag = bool(args.contnorm[0] == 'n')
+
+if not cont_flag:
+    # Continium Continuity
+
+    overlap_top = blue_wave[-1]
+    overlap_mask = red_wave[red_wave > 10] < overlap_top
+    overlap_num = int(np.sum(overlap_mask))
+    blue_sum = np.sum(blue_flux[-1 * overlap_num:])
+    red_sum = np.sum(red_flux[red_wave > 10][overlap_mask])
+    ratio = blue_sum / red_sum
+    fluxes[:, 1] *= ratio
+
+print(red_wave[red_wave>10][0])
 
 new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
                                                            wave_grid_min=wgmin)
