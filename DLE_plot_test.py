@@ -57,9 +57,9 @@ blue_exten = int(args.blue)
 red_exten = int(args.red)
 fits_file = args.file
 
-sobjs = specobjs.SpecObjs.from_fitsfile(fits_file, chk_version=False)
-blue_spec = sobjs[blue_exten - 1].to_xspec1d(extraction='OPT', fluxed=False)
-red_spec = sobjs[red_exten - 1].to_xspec1d(extraction='OPT', fluxed=False)
+sobjs = specobjs.SpecObjs.from_fitsfile(fits_file, chk_version=True)
+blue_spec = sobjs[blue_exten - 1].to_xspec1d(extraction='OPT', fluxed=True)
+red_spec = sobjs[red_exten - 1].to_xspec1d(extraction='OPT', fluxed=True)
 
 if len(blue_spec.wavelength) < len(red_spec.wavelength):
 
@@ -161,10 +161,11 @@ sig_corr = np.sqrt(utils.inverse(ivar_corr))
 comp_hdu = fits.open('Composite/MUSYC_LBGonly_stack.fits')
 comp_data = comp_hdu[0].data[0, 0, :]
 comp_redshift = 3381.89 / 1216.00 - 1
-comp_waves = (3200.43 + 0.86 * np.arange(len(comp_hdu[0].data[0, 0, :]))) / (1 + comp_redshift)
-comp_data = (np.mean(new_flux) / np.mean(comp_data)) * comp_data
+#comp_redshift = 3385.79 / 1216.00 - 1
+comp_waves = (3200.43 + 0.86 * np.arange(len(comp_data))) / (1 + comp_redshift)
+comp_data = (np.median(new_flux) / np.median(comp_data)) * comp_data
 
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=(20,12))
 redshift = float(args.redshift)
 trans = ax.get_xaxis_transform()
 ax.step(new_waves, flux_corr, 'k', where='mid')
