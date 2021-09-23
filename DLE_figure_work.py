@@ -24,7 +24,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_figure_work.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/--redshift 4.95 --blue 9 --red 30 --width 5
+# python DLE_figure_work.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/ --redshift 4.95 --blue 9 --red 30 --width 5 --channel 1
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -247,7 +247,7 @@ ax[1].text((1 + redshift) * 1216 - 30, .9, r'$\bf Ly\alpha$', transform=trans, b
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
-ax[1].set_ylim(-0.02, 0.09)
+ax[1].set_ylim(-0.02, 0.09) # Find a way to automate this. Possibly off of composite flux for Lya?
 ax[1].set_xlim(wave_low, wave_high)
 ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
@@ -256,7 +256,7 @@ ax[1].tick_params('both', length=10, width=1, which='minor')
 ax[0].set_title(r'\textbf{Obj 4219 Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.40)
-plt.savefig('fig_test.png', bbox_inches='tight')
+plt.savefig('spec_figure.png', bbox_inches='tight')
 plt.show()
 plt.close()
 
