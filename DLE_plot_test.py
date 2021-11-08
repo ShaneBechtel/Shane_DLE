@@ -165,6 +165,10 @@ comp_redshift = 3381.89 / 1216.00 - 1
 comp_waves = (3200.43 + 0.86 * np.arange(len(comp_data))) / (1 + comp_redshift)
 comp_data = (np.median(new_flux) / np.median(comp_data)) * comp_data
 
+# Edge of Sensitivity Function
+sig_corr[new_waves<5500] = 0
+flux_corr[new_waves<5500] = 0
+
 fig, ax = plt.subplots(figsize=(20,12))
 redshift = float(args.redshift)
 trans = ax.get_xaxis_transform()
@@ -173,10 +177,10 @@ ax.plot(new_waves, sig_corr, 'r:')
 ax.plot(tell_waves, tell_spec, 'g--', transform=trans, alpha=0.5)
 ax.plot((1 + redshift) * comp_waves, comp_data, 'orange', alpha=0.5)
 
-ax.vlines(J16_wave, new_flux.min(), new_flux.max(), 'y', linestyles='--', alpha=0.5)
+ax.axvline(J16_wave, color='y', linestyle='--', alpha=0.5)
 plt.text(J16_wave, .85, 'J1630', transform=trans, backgroundcolor='0.75')
-ax.vlines(J14_wave, new_flux.min(), new_flux.max(), 'y', linestyles='--', alpha=0.5)
-plt.text(J14_wave, .85, 'J1438A', transform=trans, backgroundcolor='0.75')
+ax.axvline(J14_wave, color='y', linestyle='--', alpha=0.5)
+plt.text(J14_wave, .85, 'J1438', transform=trans, backgroundcolor='0.75')
 
 ln_flag = bool(args.lines[0] == 'n')
 
@@ -198,13 +202,13 @@ if not ln_flag:
 
         if np.shape(tup[1])[0] == 1:
             z_wavelength = (1 + redshift) * tup[1][0]
-            ax.vlines(z_wavelength, flux_corr.min(), flux_corr.max(), 'b', linestyles='--', alpha=0.5)
+            ax.axvline(z_wavelength, color='b', linestyle='--', alpha=0.5)
             plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
         else:
             for l in tup[1]:
                 z_wavelength = (1 + redshift) * l
-                ax.vlines(z_wavelength, new_flux.min(), new_flux.max(), 'b', linestyles='--', alpha=0.5)
+                ax.axvline(z_wavelength, color='b', linestyle='--', alpha=0.5)
                 plt.text(z_wavelength, .85, tup[0], transform=trans, backgroundcolor='0.75')
 plt.xlim(new_waves.min(), new_waves.max())
-
+#plt.ylim(-0.2,0.2)
 plt.show()
