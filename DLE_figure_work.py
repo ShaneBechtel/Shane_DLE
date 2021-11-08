@@ -13,6 +13,7 @@ from pypeit.core import flux_calib
 from astropy.io import fits
 from pypeit import utils
 from scipy.interpolate import interp1d
+from pypeit.spectrographs.util import load_spectrograph
 from IPython import embed
 
 parser = argparse.ArgumentParser()
@@ -154,7 +155,7 @@ lya = 1215.67
 J14_wave = lya * (1 + 4.709)
 J16_wave = lya * (1 + 3.8101)
 
-# Atmospheric Effects
+# Atmospheric Effects #TODO Don't hard code in this telluric file.
 tell_hdu = fits.open('star_spec_tellcorr.fits')
 tell_waves = tell_hdu[1].data['wave']
 tell_spec = tell_hdu[1].data['telluric']
@@ -189,6 +190,7 @@ channel = int(args.channel)
 
 # 2D Sensitivity test
 
+'''
 sens_fits = fits.open('sens_2010sep24_d0924_0010.fits')
 
 sens_wave = np.append(sens_fits[2].data['SENS_WAVE'][0],sens_fits[2].data['SENS_WAVE'][1])
@@ -200,6 +202,7 @@ sens_wave = sens_wave[sens_wave!=0]
 sens_func = interp1d(sens_wave,sens_counts,bounds_error=False,fill_value=1)
 
 test_sens = sens_func(spec2DObj.waveimg)
+'''
 
 if channel == 0:
     img_data = spec2DObj.sciimg
@@ -207,9 +210,9 @@ if channel == 0:
     vmin = -3
 elif channel == 1:
     gpm = spec2DObj.bpmmask == 0
-    img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * gpm / test_sens
-    vmax = 0.006
-    vmin = -0.002
+    img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * gpm
+    vmax = 15
+    vmin = -3
 elif channel == 2:
     gpm = spec2DObj.bpmmask == 0
     img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * np.sqrt(spec2DObj.ivarmodel) * gpm
@@ -218,41 +221,42 @@ elif channel == 2:
 else:
     raise ValueError('Expected channel value of 0, 1, or 2')
 
-
-'''# 2D Sensfunc
-
-sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
-
-
-exptime = 6700.0 #Obj 4219
-
-sens_factor = flux_calib.get_sensfunc_factor(pseudo_dict['wave_mid'][:,islit], #need to find out what islit should be
-                                             sens.wave, sens.zeropoint, exptime,
-                                             extrap_sens=parset['fluxcalib']['extrap_sens'])
-
-sens_gpm = sens_factor < 100.0*np.median(sens_factor)
-sens_factor_masked = sens_factor*sens_gpm
-sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], pseudo_dict['nspat'],
-                                        axis=1)
-
-imgminsky = sens_factor_img*pseudo_dict['imgminsky']
-imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
-'''
-
-
-
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
 img_wave = img_hdu[(det - 1) * 11 + 8].data
 img_wave[img_wave<10.0] = np.nan
 #wave_low = 7150
 #wave_high = 7600
+wave_lya = (1 + redshift) * 1216
 wave_low = 6150
 wave_high = 6600
 wave_ind = int(np.round(sobjs[blue_exten - 1].SPAT_PIXPOS))
 spec_low = np.where(img_wave[:, wave_ind] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind] < wave_high)[0][-1]
 blue_slit = sobjs[blue_exten - 1].SLITID
+
+# 2D Sensfunc
+
+sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
+
+spectrograph = load_spectrograph('keck_deimos')
+exptime = spectrograph.get_meta_value(files[1],'exptime')
+#exptime = 1600.0 #Obj 4219
+
+sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
+                                             sens.wave.reshape(15353), sens.zeropoint.reshape(15353), exptime,
+                                             extrap_sens=True)
+
+sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
+sens_factor_masked = sens_factor*sens_gpm
+sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
+                                        axis=1)
+
+img_data *= sens_factor_img
+#imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
+vmax = 0.017
+vmin = -0.005
+
 '''
 # This method uses entire slit for 2D image, if slit is too large then it doesnt show full image.
 slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
@@ -282,8 +286,8 @@ ax[1].plot(new_waves, sig_corr, 'r:', linewidth=3, label=r'\textbf{Observed Unce
 ax[1].plot((1 + redshift) * comp_waves, comp_flux, 'g', linewidth=2, alpha=0.5,
            label=r'\textbf{Jones et al. 2012 Composite}')
 
-ax[1].vlines((1 + redshift) * 1216, new_flux.min(), new_flux.max(), 'b', linewidth=2, linestyles='--', alpha=0.5)
-ax[1].text((1 + redshift) * 1216 - 30, .9, r'$\bf Ly\alpha$', transform=trans, backgroundcolor='0.75', size=24)
+ax[1].vlines(wave_lya, new_flux.min(), new_flux.max(), 'b', linewidth=2, linestyles='--', alpha=0.5)
+ax[1].text(wave_lya - 30, .9, r'$\bf Ly\alpha$', transform=trans, backgroundcolor='0.75', size=24)
 
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
