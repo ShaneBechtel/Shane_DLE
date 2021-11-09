@@ -257,12 +257,8 @@ if channel == 1:
     vmax = 0.015
     vmin = -0.005
 
-'''
-# This method uses entire slit for 2D image, if slit is too large then it doesnt show full image.
-slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
-spat_low = img_hdu[(det - 1) * 11 + 10].data.left_init[slit_mask][0, 0]
-spat_high = img_hdu[(det - 1) * 11 + 10].data.right_init[slit_mask][0, 0]
-'''
+
+# 2D Spatial Range
 spat_low = wave_ind - 35
 spat_high = wave_ind + 35
 
@@ -281,6 +277,14 @@ elif slit_high<spat_low:
     pix_diff = slit_high-spat_low
     spat_high = slit_high
     spat_low += pix_diff
+
+
+# 1D Flux Range
+wave_low_ind = np.where(np.abs(new_waves-wave_low)==np.min(np.abs(new_waves-wave_low)))[0][0]
+wave_high_ind = np.where(np.abs(new_waves-wave_high)==np.min(np.abs(new_waves-wave_high)))[0][0]
+flux_range = flux_corr[wave_low_ind:wave_high_ind+1]
+flux_space = (flux_range.max()-flux_range.min())/20
+
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -306,8 +310,8 @@ ax[1].text(wave_lya - 30, .9, r'$\bf Ly\alpha$', transform=trans, backgroundcolo
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
-#ax[1].set_ylim(-0.02, 0.09) # Find a way to automate this. Possibly off of composite flux for Lya?
-ax[1].set_ylim(-0.02, 0.11)
+#ax[1].set_ylim(-0.02, 0.11)
+ax[1].set_ylim(flux_range.min()-flux_space,flux_range.max()+flux_space)
 ax[1].set_xlim(wave_low, wave_high)
 ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
