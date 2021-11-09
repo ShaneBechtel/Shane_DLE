@@ -263,9 +263,24 @@ slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
 spat_low = img_hdu[(det - 1) * 11 + 10].data.left_init[slit_mask][0, 0]
 spat_high = img_hdu[(det - 1) * 11 + 10].data.right_init[slit_mask][0, 0]
 '''
-#TODO be more robust for slit edges
-spat_low = wave_ind - 50
-spat_high = wave_ind + 50
+spat_low = wave_ind - 35
+spat_high = wave_ind + 35
+
+slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
+slit_low = img_hdu[(det - 1) * 11 + 10].data.left_init[slit_mask][0, 0]
+slit_high = img_hdu[(det - 1) * 11 + 10].data.right_init[slit_mask][0, 0]
+
+if (slit_low>spat_low)&(slit_high<spat_high):
+    spat_low = slit_low
+    spat_high = slit_high
+elif slit_low>spat_low:
+    pix_diff = slit_low-spat_low
+    spat_low = slit_low
+    spat_high += pix_diff
+elif slit_high<spat_low:
+    pix_diff = slit_high-spat_low
+    spat_high = slit_high
+    spat_low += pix_diff
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -300,7 +315,7 @@ ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
 ax[0].set_title(r'\textbf{Obj 8986 Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
-plt.subplots_adjust(hspace=-.40)
+plt.subplots_adjust(hspace=-.42)
 plt.savefig('spec_figure.png', bbox_inches='tight')
 plt.show()
 plt.close()
