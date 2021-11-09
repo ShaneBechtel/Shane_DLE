@@ -225,37 +225,37 @@ else:
 img_hdu = fits.open(spec2d_file)
 img_wave = img_hdu[(det - 1) * 11 + 8].data
 img_wave[img_wave<10.0] = np.nan
-#wave_low = 7150
-#wave_high = 7600
+redshift = float(args.redshift)
 wave_lya = (1 + redshift) * 1216
-wave_low = 6150
-wave_high = 6600
+wave_low = wave_lya-150
+wave_high = wave_lya+300
 wave_ind = int(np.round(sobjs[blue_exten - 1].SPAT_PIXPOS))
 spec_low = np.where(img_wave[:, wave_ind] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind] < wave_high)[0][-1]
 blue_slit = sobjs[blue_exten - 1].SLITID
 
-# 2D Sensfunc
+if channel == 1:
+    # 2D Sensfunc
 
-sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
+    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
 
-spectrograph = load_spectrograph('keck_deimos')
-exptime = spectrograph.get_meta_value(files[1],'exptime')
-#exptime = 1600.0 #Obj 4219
+    spectrograph = load_spectrograph('keck_deimos')
+    exptime = spectrograph.get_meta_value(files[1],'exptime')
+    #exptime = 1600.0 #Obj 4219
 
-sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
-                                             sens.wave.reshape(15353), sens.zeropoint.reshape(15353), exptime,
-                                             extrap_sens=True)
+    sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
+                                                 sens.wave.reshape(15353), sens.zeropoint.reshape(15353), exptime,
+                                                 extrap_sens=True)
 
-sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
-sens_factor_masked = sens_factor*sens_gpm
-sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
-                                        axis=1)
+    sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
+    sens_factor_masked = sens_factor*sens_gpm
+    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
+                                            axis=1)
 
-img_data *= sens_factor_img
-#imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
-vmax = 0.017
-vmin = -0.005
+    img_data *= sens_factor_img
+    #imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
+    vmax = 0.015
+    vmin = -0.005
 
 '''
 # This method uses entire slit for 2D image, if slit is too large then it doesnt show full image.
@@ -279,7 +279,6 @@ ax[0].set_xlim(spec_low, spec_high)
 ax[0].axes.get_xaxis().set_visible(False)
 ax[0].axes.get_yaxis().set_visible(False)
 
-redshift = float(args.redshift)
 trans = ax[1].get_xaxis_transform()
 ax[1].step(new_waves, flux_corr, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax[1].plot(new_waves, sig_corr, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
