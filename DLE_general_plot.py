@@ -295,16 +295,16 @@ img_wave[img_wave<10.0] = np.nan
 #wave_high = wave_lya+300
 wave_low = J14_wave-300
 wave_high = J14_wave+1000
-wave_ind = int(np.round(sobjs[blue_exten - 1].SPAT_PIXPOS))
-spec_low = np.where(img_wave[:, wave_ind] > wave_low)[0][0]
-spec_high = np.where(img_wave[:, wave_ind] < wave_high)[0][-1]
+spec_low = np.where(img_wave[:, wave_ind_blue] > wave_low)[0][0]
+spec_high = np.where(img_wave[:, wave_ind_blue] < wave_high)[0][-1]
 
-if np.sum(img_wave[:,wave_ind]>wave_high) == 0:
+if np.sum(img_wave[:,wave_ind_blue]>wave_high) == 0:
     img_wave_red = img_hdu[(det + 4 - 1) * 11 + 8].data
+    img_wave_red[img_wave_red < 10.0] = np.nan
+    spec_high += np.where(img_wave_red[:, wave_ind_red] < wave_high)[0][-1]
 
 blue_slit = sobjs[blue_exten - 1].SLITID
-
-embed()
+wave_ind = np.max([wave_ind_red,wave_ind_blue])
 
 if channel == 1:
     # 2D Sensfunc
