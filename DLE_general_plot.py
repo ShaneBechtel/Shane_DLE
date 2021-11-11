@@ -213,16 +213,26 @@ if red_flag:
     if channel == 0:
         img_data_blue = spec2DObj_blue.sciimg
         img_data_red = spec2DObj_red.sciimg
+        img_data_red = np.append(spat_buffer,img_data_red,axis=1)
+        img_data = np.append(img_data_blue[:,:spat_max],img_data_red[:,:spat_max],axis=0)
         vmax = 15
         vmin = -3
     elif channel == 1:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        gpm_red = spec2DObj_red.bpmmask == 0
+        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red
+        img_data_red = np.append(spat_buffer, img_data_red, axis=1)
+        img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 15
         vmin = -3
     elif channel == 2:
         gpm_blue = spec2DObj_blue.bpmmask == 0
-        img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        gpm_red = spec2DObj_red.bpmmask == 0
+        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red
+        img_data_red = np.append(spat_buffer, img_data_red, axis=1)
+        img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 4
         vmin = -1
     else:
@@ -231,16 +241,26 @@ elif blue_flag:
     if channel == 0:
         img_data_blue = spec2DObj_blue.sciimg
         img_data_red = spec2DObj_red.sciimg
+        img_data_blue = np.append(spat_buffer,img_data_blue,axis=1)
+        img_data = np.append(img_data_blue[:,:spat_max],img_data_red[:,:spat_max],axis=0)
         vmax = 15
         vmin = -3
     elif channel == 1:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        gpm_red = spec2DObj_red.bpmmask == 0
+        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red
+        img_data_blue = np.append(spat_buffer, img_data_blue, axis=1)
+        img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 15
         vmin = -3
     elif channel == 2:
         gpm_blue = spec2DObj_blue.bpmmask == 0
-        img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        gpm_red = spec2DObj_red.bpmmask == 0
+        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red
+        img_data_blue = np.append(spat_buffer, img_data_blue, axis=1)
+        img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 4
         vmin = -1
     else:
@@ -264,6 +284,7 @@ else:
     else:
         raise ValueError('Expected channel value of 0, 1, or 2')
 
+
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
 img_wave = img_hdu[(det - 1) * 11 + 8].data
@@ -277,7 +298,13 @@ wave_high = J14_wave+1000
 wave_ind = int(np.round(sobjs[blue_exten - 1].SPAT_PIXPOS))
 spec_low = np.where(img_wave[:, wave_ind] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind] < wave_high)[0][-1]
+
+if np.sum(img_wave[:,wave_ind]>wave_high) == 0:
+    img_wave_red = img_hdu[(det + 4 - 1) * 11 + 8].data
+
 blue_slit = sobjs[blue_exten - 1].SLITID
+
+embed()
 
 if channel == 1:
     # 2D Sensfunc
