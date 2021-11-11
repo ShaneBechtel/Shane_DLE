@@ -185,41 +185,84 @@ comp_flux = (np.median(new_flux) / np.nanmedian(comp_flux)) * comp_flux
 
 # 2D Image
 det = sobjs[blue_exten - 1].DET
-spec2DObj = spec2dobj.Spec2DObj.from_file(spec2d_file, det, chk_version=False)
+spec2DObj_blue = spec2dobj.Spec2DObj.from_file(spec2d_file, det, chk_version=False)
+spec2DObj_red = spec2dobj.Spec2DObj.from_file(spec2d_file, det+4, chk_version=False)
 channel = int(args.channel)
 
-# 2D Sensitivity test
 
-'''
-sens_fits = fits.open('sens_2010sep24_d0924_0010.fits')
+wave_ind_blue = int(np.round(sobjs[blue_exten - 1].SPAT_PIXPOS))
+wave_ind_red = int(np.round(sobjs[red_exten - 1].SPAT_PIXPOS))
 
-sens_wave = np.append(sens_fits[2].data['SENS_WAVE'][0],sens_fits[2].data['SENS_WAVE'][1])
-sens_counts = np.append(sens_fits[2].data['SENS_COUNTS_PER_ANG'][0],sens_fits[2].data['SENS_COUNTS_PER_ANG'][1])
+red_flag = False
+blue_flag = False
 
-sens_counts = sens_counts[sens_wave!=0]
-sens_wave = sens_wave[sens_wave!=0]
+if wave_ind_blue>wave_ind_red:
+    wave_diff = wave_ind_blue-wave_ind_red
+    red_flag = True
+    spat_buffer = np.zeros((spec2DObj_red.sciimg.shape[0],wave_diff))
+    spat_max = np.min([spec2DObj_red.sciimg.shape[1]+wave_diff,spec2DObj_blue.sciimg.shape[1]])
 
-sens_func = interp1d(sens_wave,sens_counts,bounds_error=False,fill_value=1)
+elif wave_ind_blue<wave_ind_red:
+    wave_diff = wave_ind_red - wave_ind_blue
+    blue_flag = True
+    spat_buffer = np.zeros((spec2DObj_blue.sciimg.shape[0], wave_diff))
+    spat_max = np.min([spec2DObj_red.sciimg.shape[1],spec2DObj_blue.sciimg.shape[1]+wave_diff])
 
-test_sens = sens_func(spec2DObj.waveimg)
-'''
 
-if channel == 0:
-    img_data = spec2DObj.sciimg
-    vmax = 15
-    vmin = -3
-elif channel == 1:
-    gpm = spec2DObj.bpmmask == 0
-    img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * gpm
-    vmax = 15
-    vmin = -3
-elif channel == 2:
-    gpm = spec2DObj.bpmmask == 0
-    img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * np.sqrt(spec2DObj.ivarmodel) * gpm
-    vmax = 4
-    vmin = -1
+if red_flag:
+    if channel == 0:
+        img_data_blue = spec2DObj_blue.sciimg
+        img_data_red = spec2DObj_red.sciimg
+        vmax = 15
+        vmin = -3
+    elif channel == 1:
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        vmax = 15
+        vmin = -3
+    elif channel == 2:
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        vmax = 4
+        vmin = -1
+    else:
+        raise ValueError('Expected channel value of 0, 1, or 2')
+elif blue_flag:
+    if channel == 0:
+        img_data_blue = spec2DObj_blue.sciimg
+        img_data_red = spec2DObj_red.sciimg
+        vmax = 15
+        vmin = -3
+    elif channel == 1:
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        vmax = 15
+        vmin = -3
+    elif channel == 2:
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        vmax = 4
+        vmin = -1
+    else:
+        raise ValueError('Expected channel value of 0, 1, or 2')
 else:
-    raise ValueError('Expected channel value of 0, 1, or 2')
+    if channel == 0:
+        img_data_blue = spec2DObj_blue.sciimg
+        img_data_red = spec2DObj_red.sciimg
+        vmax = 15
+        vmin = -3
+    elif channel == 1:
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        vmax = 15
+        vmin = -3
+    elif channel == 2:
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        vmax = 4
+        vmin = -1
+    else:
+        raise ValueError('Expected channel value of 0, 1, or 2')
 
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
