@@ -306,7 +306,7 @@ if np.sum(img_wave[:,wave_ind_blue]>wave_high) == 0:
 blue_slit = sobjs[blue_exten - 1].SLITID
 wave_ind = np.max([wave_ind_red,wave_ind_blue])
 
-if channel == 1:
+if channel == 1: #TODO Integrate sensitivity functionality
     # 2D Sensfunc
 
     sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
