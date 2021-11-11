@@ -18,7 +18,6 @@ from IPython import embed
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--file_path', help='Coadd directory path')
-parser.add_argument('--redshift', default=0.0, help='Redshift of emission lines')
 parser.add_argument('--blue', help='Exten value for target in Blue Detector')
 parser.add_argument('--red', help='Exten value for target in Blue Detector')
 parser.add_argument('--width', help='Width of boxcar smoothing')
@@ -28,7 +27,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_figure_work.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/ --redshift 4.95 --blue 9 --red 30 --width 5 --channel 1
+# python DLE_general_plot.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/ --blue 9 --red 30 --width 5 --channel 1
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -183,6 +182,7 @@ comp_waves = comp_data[:, 0]
 comp_flux = comp_data[:, 1]
 comp_flux = (np.median(new_flux) / np.nanmedian(comp_flux)) * comp_flux
 
+
 # 2D Image
 det = sobjs[blue_exten - 1].DET
 spec2DObj = spec2dobj.Spec2DObj.from_file(spec2d_file, det, chk_version=False)
@@ -225,10 +225,12 @@ else:
 img_hdu = fits.open(spec2d_file)
 img_wave = img_hdu[(det - 1) * 11 + 8].data
 img_wave[img_wave<10.0] = np.nan
-redshift = float(args.redshift)
-wave_lya = (1 + redshift) * lya
-wave_low = wave_lya-150
-wave_high = wave_lya+300
+#redshift = float(args.redshift)
+#wave_lya = (1 + redshift) * lya
+#wave_low = wave_lya-150
+#wave_high = wave_lya+300
+wave_low = J14_wave-300
+wave_high = J14_wave+1000
 wave_ind = int(np.round(sobjs[blue_exten - 1].SPAT_PIXPOS))
 spec_low = np.where(img_wave[:, wave_ind] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind] < wave_high)[0][-1]
@@ -301,11 +303,9 @@ ax[0].axes.get_yaxis().set_visible(False)
 trans = ax[1].get_xaxis_transform()
 ax[1].step(new_waves, flux_corr, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax[1].plot(new_waves, sig_corr, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
-ax[1].plot((1 + redshift) * comp_waves, comp_flux, 'g', linewidth=2, alpha=0.5,
-           label=r'\textbf{Jones et al. 2012 Composite}')
 
-ax[1].vlines(wave_lya, new_flux.min(), new_flux.max(), 'b', linewidth=2, linestyles='--', alpha=0.5)
-ax[1].text(wave_lya - 30, .9, r'$\bf Ly\alpha$', transform=trans, backgroundcolor='0.75', size=24)
+ax[1].axvline(J14_wave, color='y', linestyle='--', alpha=0.5)
+ax[1].text(J14_wave, .85, 'J1438', transform=trans, backgroundcolor='0.75')
 
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
@@ -317,7 +317,7 @@ ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{Obj 8986 Spectrum}', size=24)
+#ax[0].set_title(r'\textbf{Obj 8986 Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.42)
 plt.savefig('spec_figure.png', bbox_inches='tight')
