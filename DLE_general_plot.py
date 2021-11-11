@@ -331,8 +331,8 @@ if channel == 1:
 
 
 # 2D Spatial Range
-spat_low = wave_ind - 35
-spat_high = wave_ind + 35
+spat_low = wave_ind - 70
+spat_high = wave_ind + 70
 
 slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
 slit_low = img_hdu[(det - 1) * 11 + 10].data.left_init[slit_mask][0, 0]
@@ -349,7 +349,6 @@ elif slit_high<spat_low:
     pix_diff = slit_high-spat_low
     spat_high = slit_high
     spat_low += pix_diff
-
 
 # 1D Flux Range
 wave_low_ind = np.where(np.abs(new_waves-wave_low)==np.min(np.abs(new_waves-wave_low)))[0][0]
