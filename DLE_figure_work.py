@@ -138,7 +138,7 @@ if not cont_flag:
     fluxes[:, 1] *= ratio
 
 new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
-                                                           wave_grid_min=wgmin)
+                                                           wave_grid_min=wgmin,scale_method='median')
 
 zero_skip = new_waves > 10
 new_waves = new_waves[zero_skip]
@@ -244,10 +244,10 @@ if channel == 1:
     #exptime = 1600.0 #Obj 4219
 
     sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
-                                                 sens.wave.reshape(15353), sens.zeropoint.reshape(15353), exptime,
+                                                 sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
                                                  extrap_sens=True)
 
-    sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
+    sens_gpm = sens_factor < 100.0*np.median(sens_factor)
     sens_factor_masked = sens_factor*sens_gpm
     sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
                                             axis=1)
