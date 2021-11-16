@@ -208,11 +208,15 @@ elif wave_ind_blue<wave_ind_red:
     spat_max = np.min([spec2DObj_red.sciimg.shape[1],spec2DObj_blue.sciimg.shape[1]+wave_diff])
 
 
+bwaves = spec2DObj_blue.waveimg[:,wave_ind_blue]
+rwaves = spec2DObj_red.waveimg[:,wave_ind_red]
+rmask = rwaves>bwaves.max()
+
 if red_flag:
     if channel == 0:
         img_data_blue = spec2DObj_blue.sciimg
         img_data_red = spec2DObj_red.sciimg
-        img_data_red = np.append(spat_buffer,img_data_red,axis=1)
+        img_data_red = np.append(spat_buffer,img_data_red,axis=1)[rmask]
         img_data = np.append(img_data_blue[:,:spat_max],img_data_red[:,:spat_max],axis=0)
         vmax = 15
         vmin = -3
@@ -221,7 +225,7 @@ if red_flag:
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
         gpm_red = spec2DObj_red.bpmmask == 0
         img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red
-        img_data_red = np.append(spat_buffer, img_data_red, axis=1)
+        img_data_red = np.append(spat_buffer, img_data_red, axis=1)[rmask]
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 15
         vmin = -3
@@ -230,7 +234,7 @@ if red_flag:
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
         gpm_red = spec2DObj_red.bpmmask == 0
         img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red
-        img_data_red = np.append(spat_buffer, img_data_red, axis=1)
+        img_data_red = np.append(spat_buffer, img_data_red, axis=1)[rmask]
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 4
         vmin = -1
@@ -239,7 +243,7 @@ if red_flag:
 elif blue_flag:
     if channel == 0:
         img_data_blue = spec2DObj_blue.sciimg
-        img_data_red = spec2DObj_red.sciimg
+        img_data_red = spec2DObj_red.sciimg[rmask]
         img_data_blue = np.append(spat_buffer,img_data_blue,axis=1)
         img_data = np.append(img_data_blue[:,:spat_max],img_data_red[:,:spat_max],axis=0)
         vmax = 15
@@ -248,7 +252,7 @@ elif blue_flag:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
         gpm_red = spec2DObj_red.bpmmask == 0
-        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red
+        img_data_red = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red)[rmask]
         img_data_blue = np.append(spat_buffer, img_data_blue, axis=1)
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 15
@@ -257,7 +261,7 @@ elif blue_flag:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
         gpm_red = spec2DObj_red.bpmmask == 0
-        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red
+        img_data_red = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red)[rmask]
         img_data_blue = np.append(spat_buffer, img_data_blue, axis=1)
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 4
@@ -267,17 +271,21 @@ elif blue_flag:
 else:
     if channel == 0:
         img_data_blue = spec2DObj_blue.sciimg
-        img_data_red = spec2DObj_red.sciimg
+        img_data_red = spec2DObj_red.sciimg[rmask]
         vmax = 15
         vmin = -3
     elif channel == 1:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        gpm_red = spec2DObj_red.bpmmask == 0
+        img_data_red = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red)[rmask]
         vmax = 15
         vmin = -3
     elif channel == 2:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        gpm_blue = spec2DObj_blue.bpmmask == 0
+        img_data = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red)[rmask]
         vmax = 4
         vmin = -1
     else:
@@ -292,10 +300,10 @@ img_wave[img_wave<10.0] = np.nan
 #wave_lya = (1 + redshift) * lya
 #wave_low = wave_lya-150
 #wave_high = wave_lya+300
-wave_low = J14_wave-800
-wave_high = J14_wave+3000
-#wave_low = 6000
-#wave_high = 10000
+#wave_low = J14_wave-800
+#wave_high = J14_wave+3000
+wave_low = 6000
+wave_high = 10000
 spec_low = np.where(img_wave[:, wave_ind_blue] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind_blue] < wave_high)[0][-1]
 
@@ -315,17 +323,17 @@ if channel == 1: #TODO Integrate sensitivity functionality
     spectrograph = load_spectrograph('keck_deimos')
     exptime = spectrograph.get_meta_value(files[1],'exptime')
     #exptime = 1600.0 #Obj 4219
-
-    sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
-                                                 sens.wave.reshape(15353), sens.zeropoint.reshape(15353), exptime,
+    waveimg = np.append(bwaves,rwaves[rmask])
+    embed()
+    sens_factor = flux_calib.get_sensfunc_factor(waveimg,sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
                                                  extrap_sens=True)
 
     sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
     sens_factor_masked = sens_factor*sens_gpm
-    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
+    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], waveimg.shape[0], #pseudo_dict['nspat']
                                             axis=1)
 
-    img_data *= sens_factor_img
+    img_data *= sens_factor_img[:, :spat_max]
     #imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
     vmax = 0.015
     vmin = -0.005
@@ -392,7 +400,8 @@ ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
 #ax[1].set_ylim(-0.02, 0.11)
-ax[1].set_ylim(flux_range.min()-flux_space,flux_range.max()+flux_space)
+#ax[1].set_ylim(flux_range.min()-flux_space,flux_range.max()+flux_space)
+ax[1].set_ylim(flux_range.mean()-flux_range.var()*80,flux_range.mean()+flux_range.var()*150)
 ax[1].set_xlim(wave_low, wave_high)
 ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
