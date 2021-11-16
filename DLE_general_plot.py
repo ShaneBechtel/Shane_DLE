@@ -124,7 +124,6 @@ wgmax = np.max(red_wave)
 wgmin = np.min(blue_wave[blue_wave > 10])
 
 cont_flag = bool(args.contnorm[0] == 'n')
-
 if not cont_flag:
     # Continium Continuity
 
@@ -137,7 +136,7 @@ if not cont_flag:
     fluxes[:, 1] *= ratio
 
 new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
-                                                           wave_grid_min=wgmin)
+                                                           wave_grid_min=wgmin,scale_method='auto')
 
 zero_skip = new_waves > 10
 new_waves = new_waves[zero_skip]
@@ -293,8 +292,10 @@ img_wave[img_wave<10.0] = np.nan
 #wave_lya = (1 + redshift) * lya
 #wave_low = wave_lya-150
 #wave_high = wave_lya+300
-wave_low = J14_wave-300
-wave_high = J14_wave+1000
+wave_low = J14_wave-800
+wave_high = J14_wave+3000
+#wave_low = 6000
+#wave_high = 10000
 spec_low = np.where(img_wave[:, wave_ind_blue] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind_blue] < wave_high)[0][-1]
 
@@ -356,6 +357,14 @@ wave_high_ind = np.where(np.abs(new_waves-wave_high)==np.min(np.abs(new_waves-wa
 flux_range = flux_corr[wave_low_ind:wave_high_ind+1]
 flux_space = (flux_range.max()-flux_range.min())/20
 
+rb_wave = red_wave[red_wave>10][0]
+
+
+def forceAspect(ax,aspect):
+    im = ax.get_images()
+    extent = im[0].get_extent()
+    ax.set_aspect(abs((extent[1]-extent[0])/(extent[3]-extent[2]))/aspect)
+
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -368,10 +377,13 @@ ax[0].set_ylim(spat_low, spat_high)
 ax[0].set_xlim(spec_low, spec_high)
 ax[0].axes.get_xaxis().set_visible(False)
 ax[0].axes.get_yaxis().set_visible(False)
+forceAspect(ax[0],aspect=1.0)
 
 trans = ax[1].get_xaxis_transform()
 ax[1].step(new_waves, flux_corr, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax[1].plot(new_waves, sig_corr, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
+
+ax[1].axvline(rb_wave, color='gray', linestyle='--', alpha=0.5)
 
 ax[1].axvline(J14_wave, color='y', linestyle='--', alpha=0.5)
 ax[1].text(J14_wave, .85, 'J1438', transform=trans, backgroundcolor='0.75')
@@ -386,9 +398,9 @@ ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-#ax[0].set_title(r'\textbf{Obj 8986 Spectrum}', size=24)
+ax[0].set_title(r'\textbf{Test Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
-plt.subplots_adjust(hspace=-.42)
+plt.subplots_adjust(hspace=-.442)
 plt.savefig('spec_figure.png', bbox_inches='tight')
 plt.show()
 plt.close()
