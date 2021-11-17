@@ -234,29 +234,6 @@ spec_low = np.where(img_wave[:, wave_ind] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind] < wave_high)[0][-1]
 blue_slit = sobjs[blue_exten - 1].SLITID
 
-if channel == 1:
-    # 2D Sensfunc
-
-    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
-
-    spectrograph = load_spectrograph('keck_deimos')
-    exptime = spectrograph.get_meta_value(files[1],'exptime')
-    #exptime = 1600.0 #Obj 4219
-
-    sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
-                                                 sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
-                                                 extrap_sens=True)
-
-    sens_gpm = sens_factor < 100.0*np.median(sens_factor)
-    sens_factor_masked = sens_factor*sens_gpm
-    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
-                                            axis=1)
-
-    img_data *= sens_factor_img
-    #imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
-    vmax = 0.015
-    vmin = -0.005
-
 
 # 2D Spatial Range
 spat_low = wave_ind - 35
@@ -279,11 +256,44 @@ elif slit_high<spat_low:
     spat_low += pix_diff
 
 
+if channel == 1:
+    # 2D Sensfunc
+
+    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
+
+    spectrograph = load_spectrograph('keck_deimos')
+    exptime = spectrograph.get_meta_value(files[1],'exptime')
+    #exptime = 1600.0 #Obj 4219
+
+    sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
+                                                 sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
+                                                 extrap_sens=True)
+
+    sens_gpm = sens_factor < 100.0*np.median(sens_factor)
+    sens_factor_masked = sens_factor*sens_gpm
+    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
+                                            axis=1)
+
+    img_data *= sens_factor_img
+    #imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
+
+    #2D Flux Range
+
+    fwhm_low = wave_ind - 10
+    fwhm_high = wave_ind + 10
+
+    mad_std_low = utils.nan_mad_std(img_data[spec_low:spec_high,int(spat_low):fwhm_low])
+    mad_std_high = utils.nan_mad_std(img_data[spec_low:spec_high,fwhm_high:int(spat_high)])
+    mad_std = np.mean([mad_std_low,mad_std_high])
+
+    vmax = 5*mad_std
+    vmin = -2*mad_std
+
+
 # 1D Flux Range
 wave_low_ind = np.where(np.abs(new_waves-wave_low)==np.min(np.abs(new_waves-wave_low)))[0][0]
 wave_high_ind = np.where(np.abs(new_waves-wave_high)==np.min(np.abs(new_waves-wave_high)))[0][0]
 flux_range = flux_corr[wave_low_ind:wave_high_ind+1]
-flux_space = (flux_range.max()-flux_range.min())/20
 
 
 plt.rc('text', usetex=True)
@@ -310,8 +320,8 @@ ax[1].text(wave_lya - 30, .9, r'$\bf Ly\alpha$', transform=trans, backgroundcolo
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
-#ax[1].set_ylim(-0.02, 0.11)
-ax[1].set_ylim(flux_range.min()-flux_space,flux_range.max()+flux_space)
+mad_std_1D = utils.nan_mad_std(flux_range)
+ax[1].set_ylim(flux_range.mean()-mad_std_1D*4,flux_range.mean()+mad_std_1D*6)
 ax[1].set_xlim(wave_low, wave_high)
 ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))

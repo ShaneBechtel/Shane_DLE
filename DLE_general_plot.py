@@ -315,30 +315,6 @@ if np.sum(img_wave[:,wave_ind_blue]>wave_high) == 0:
 blue_slit = sobjs[blue_exten - 1].SLITID
 wave_ind = np.max([wave_ind_red,wave_ind_blue])
 
-if channel == 1:
-    # 2D Sensfunc
-
-    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
-
-    spectrograph = load_spectrograph('keck_deimos')
-    exptime = spectrograph.get_meta_value(files[1],'exptime')
-    #exptime = 1600.0 #Obj 4219
-    waveimg = np.append(bwaves,rwaves[rmask])
-    embed()
-    sens_factor = flux_calib.get_sensfunc_factor(waveimg,sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
-                                                 extrap_sens=True)
-
-    sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
-    sens_factor_masked = sens_factor*sens_gpm
-    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], waveimg.shape[0], #pseudo_dict['nspat']
-                                            axis=1)
-
-    img_data *= sens_factor_img[:, :spat_max]
-    #imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
-    vmax = 0.015
-    vmin = -0.005
-
-
 # 2D Spatial Range
 spat_low = wave_ind - 70
 spat_high = wave_ind + 70
@@ -359,11 +335,46 @@ elif slit_high<spat_low:
     spat_high = slit_high
     spat_low += pix_diff
 
+
+
+if channel == 1:
+    # 2D Sensfunc
+
+    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
+
+    spectrograph = load_spectrograph('keck_deimos')
+    exptime = spectrograph.get_meta_value(files[1],'exptime')
+    #exptime = 1600.0 #Obj 4219
+    waveimg = np.append(bwaves,rwaves[rmask])
+
+    sens_factor = flux_calib.get_sensfunc_factor(waveimg,sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
+                                                 extrap_sens=True)
+
+    sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
+    sens_factor_masked = sens_factor*sens_gpm
+    sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], waveimg.shape[0], #pseudo_dict['nspat']
+                                            axis=1)
+
+    img_data *= sens_factor_img[:, :spat_max]
+    #imgminsky_gpm = sens_gpm[:, np.newaxis] & pseudo_dict['inmask']
+
+    #2D Flux Range
+
+    fwhm_low = wave_ind - 10
+    fwhm_high = wave_ind + 10
+
+    mad_std_low = utils.nan_mad_std(img_data[spec_low:spec_high,int(spat_low):fwhm_low])
+    mad_std_high = utils.nan_mad_std(img_data[spec_low:spec_high,fwhm_high:int(spat_high)])
+    mad_std = np.mean([mad_std_low,mad_std_high])
+
+    vmax = 5*mad_std
+    vmin = -2*mad_std
+
+
 # 1D Flux Range
 wave_low_ind = np.where(np.abs(new_waves-wave_low)==np.min(np.abs(new_waves-wave_low)))[0][0]
 wave_high_ind = np.where(np.abs(new_waves-wave_high)==np.min(np.abs(new_waves-wave_high)))[0][0]
 flux_range = flux_corr[wave_low_ind:wave_high_ind+1]
-flux_space = (flux_range.max()-flux_range.min())/20
 
 rb_wave = red_wave[red_wave>10][0]
 
@@ -399,9 +410,9 @@ ax[1].text(J14_wave, .85, 'J1438', transform=trans, backgroundcolor='0.75')
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
-#ax[1].set_ylim(-0.02, 0.11)
-#ax[1].set_ylim(flux_range.min()-flux_space,flux_range.max()+flux_space)
-ax[1].set_ylim(flux_range.mean()-flux_range.var()*80,flux_range.mean()+flux_range.var()*150)
+#ax[1].set_ylim(flux_range.mean()-flux_range.var()*80,flux_range.mean()+flux_range.var()*150)
+mad_std_1D = utils.nan_mad_std(flux_range)
+ax[1].set_ylim(flux_range.mean()-mad_std_1D*4,flux_range.mean()+mad_std_1D*6)
 ax[1].set_xlim(wave_low, wave_high)
 ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
@@ -410,7 +421,7 @@ ax[1].tick_params('both', length=10, width=1, which='minor')
 ax[0].set_title(r'\textbf{Test Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.442)
-plt.savefig('spec_figure.png', bbox_inches='tight')
+plt.savefig('test_figure.png', bbox_inches='tight')
 plt.show()
 plt.close()
 
