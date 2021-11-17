@@ -190,20 +190,6 @@ channel = int(args.channel)
 
 # 2D Sensitivity test
 
-'''
-sens_fits = fits.open('sens_2010sep24_d0924_0010.fits')
-
-sens_wave = np.append(sens_fits[2].data['SENS_WAVE'][0],sens_fits[2].data['SENS_WAVE'][1])
-sens_counts = np.append(sens_fits[2].data['SENS_COUNTS_PER_ANG'][0],sens_fits[2].data['SENS_COUNTS_PER_ANG'][1])
-
-sens_counts = sens_counts[sens_wave!=0]
-sens_wave = sens_wave[sens_wave!=0]
-
-sens_func = interp1d(sens_wave,sens_counts,bounds_error=False,fill_value=1)
-
-test_sens = sens_func(spec2DObj.waveimg)
-'''
-
 if channel == 0:
     img_data = spec2DObj.sciimg
     vmax = 15
