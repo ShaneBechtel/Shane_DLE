@@ -169,6 +169,8 @@ comp_data = (np.median(new_flux) / np.median(comp_data)) * comp_data
 sig_corr[new_waves<5500] = 0
 flux_corr[new_waves<5500] = 0
 
+rb_wave = red_wave[red_wave>10][0]
+
 fig, ax = plt.subplots(figsize=(20,12))
 redshift = float(args.redshift)
 trans = ax.get_xaxis_transform()
@@ -181,6 +183,7 @@ ax.axvline(J16_wave, color='y', linestyle='--', alpha=0.5)
 plt.text(J16_wave, .85, 'J1630', transform=trans, backgroundcolor='0.75')
 ax.axvline(J14_wave, color='y', linestyle='--', alpha=0.5)
 plt.text(J14_wave, .85, 'J1438', transform=trans, backgroundcolor='0.75')
+plt.axvline(rb_wave, color='gray', linestyle='--', alpha=0.5)
 
 ln_flag = bool(args.lines[0] == 'n')
 
