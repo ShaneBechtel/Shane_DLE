@@ -284,7 +284,7 @@ else:
     elif channel == 2:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
-        gpm_blue = spec2DObj_blue.bpmmask == 0
+        gpm_red = spec2DObj_blue.bpmmask == 0
         img_data = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red)[rmask]
         vmax = 4
         vmin = -1
@@ -401,7 +401,8 @@ forceAspect(ax[0],aspect=1.0)
 trans = ax[1].get_xaxis_transform()
 ax[1].step(new_waves, flux_corr, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax[1].plot(new_waves, sig_corr, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
-
+#ax[1].plot((1 + redshift) * comp_waves, comp_flux, 'g', linewidth=2, alpha=0.5,
+#           label=r'\textbf{Jones et al. 2012 Composite}') #What redshift for shapley composite?
 ax[1].axvline(rb_wave, color='gray', linestyle='--', alpha=0.5)
 
 ax[1].axvline(J14_wave, color='y', linestyle='--', alpha=0.5)
