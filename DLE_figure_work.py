@@ -23,7 +23,6 @@ parser.add_argument('--blue', help='Exten value for target in Blue Detector')
 parser.add_argument('--red', help='Exten value for target in Blue Detector')
 parser.add_argument('--width', help='Width of boxcar smoothing')
 parser.add_argument('--channel', default=2, help='Which channel to include for 2D image in figure')
-parser.add_argument('--contnorm', default='yes', help='Normalize the continuum flux?')
 args = parser.parse_args()
 
 
@@ -73,41 +72,42 @@ spec1d_file = files[0]
 spec2d_file = files[1]
 
 sobjs = specobjs.SpecObjs.from_fitsfile(spec1d_file, chk_version=True)
-blue_spec = sobjs[blue_exten - 1].to_xspec1d(extraction='OPT', fluxed=True)
-red_spec = sobjs[red_exten - 1].to_xspec1d(extraction='OPT', fluxed=True)
 
-if len(blue_spec.wavelength) < len(red_spec.wavelength):
+blue_spec = sobjs[blue_exten - 1]
+red_spec = sobjs[red_exten - 1]
 
-    red_wave = red_spec.wavelength.value
-    red_flux = red_spec.flux.value
-    red_ivar = red_spec.ivar.value
+if len(blue_spec.OPT_WAVE) < len(red_spec.OPT_WAVE):
+
+    red_wave = red_spec.OPT_WAVE
+    red_flux = red_spec.OPT_FLAM
+    red_ivar = red_spec.OPT_FLAM_IVAR
 
     blue_wave = np.zeros_like(red_wave)
     blue_flux = np.zeros_like(red_wave)
     blue_ivar = np.zeros_like(red_wave)
 
-    diff = len(red_spec.wavelength) - len(blue_spec.wavelength)
+    diff = len(red_spec.OPT_WAVE) - len(blue_spec.OPT_WAVE)
 
-    blue_wave[diff:] = blue_spec.wavelength.value
-    blue_flux[diff:] = blue_spec.flux.value
-    blue_ivar[diff:] = blue_spec.ivar.value
+    blue_wave[diff:] = blue_spec.OPT_WAVE
+    blue_flux[diff:] = blue_spec.OPT_FLAM
+    blue_ivar[diff:] = blue_spec.OPT_FLAM_IVAR
 
 
 else:
 
-    blue_wave = blue_spec.wavelength.value
-    blue_flux = blue_spec.flux.value
-    blue_ivar = blue_spec.ivar.value
+    blue_wave = blue_spec.OPT_WAVE
+    blue_flux = blue_spec.OPT_FLAM
+    blue_ivar = blue_spec.OPT_FLAM_IVAR
 
     red_wave = np.zeros_like(blue_wave)
     red_flux = np.zeros_like(blue_wave)
     red_ivar = np.zeros_like(blue_wave)
 
-    diff = len(blue_spec.wavelength) - len(red_spec.wavelength)
+    diff = len(blue_spec.OPT_WAVE) - len(red_spec.OPT_WAVE)
 
-    red_wave[diff:] = red_spec.wavelength.value
-    red_flux[diff:] = red_spec.flux.value
-    red_ivar[diff:] = red_spec.ivar.value
+    red_wave[diff:] = red_spec.OPT_WAVE
+    red_flux[diff:] = red_spec.OPT_FLAM
+    red_ivar[diff:] = red_spec.OPT_FLAM_IVAR
 
 waves = np.zeros((len(blue_wave), 2))
 fluxes = np.zeros((len(blue_wave), 2))
@@ -123,19 +123,6 @@ masks = ivars > 0.0
 
 wgmax = np.max(red_wave)
 wgmin = np.min(blue_wave[blue_wave > 10])
-
-cont_flag = bool(args.contnorm[0] == 'n')
-
-if not cont_flag:
-    # Continium Continuity
-
-    overlap_top = blue_wave[-1]
-    overlap_mask = red_wave[red_wave > 10] < overlap_top
-    overlap_num = int(np.sum(overlap_mask))
-    blue_sum = np.sum(blue_flux[-1 * overlap_num:])
-    red_sum = np.sum(red_flux[red_wave > 10][overlap_mask])
-    ratio = blue_sum / red_sum
-    fluxes[:, 1] *= ratio
 
 new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
                                                            wave_grid_min=wgmin,scale_method='median')
@@ -197,8 +184,6 @@ if channel == 0:
 elif channel == 1:
     gpm = spec2DObj.bpmmask == 0
     img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * gpm
-    vmax = 15
-    vmin = -3
 elif channel == 2:
     gpm = spec2DObj.bpmmask == 0
     img_data = (spec2DObj.sciimg - spec2DObj.skymodel) * np.sqrt(spec2DObj.ivarmodel) * gpm
@@ -313,7 +298,7 @@ ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{Obj 8986 Spectrum}', size=24)
+ax[0].set_title(r'\textbf{Obj 4219 Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.42)
 plt.savefig('spec_figure.png', bbox_inches='tight')
