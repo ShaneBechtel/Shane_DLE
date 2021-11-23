@@ -198,31 +198,37 @@ elif wave_ind_blue<wave_ind_red:
 
 bwaves = spec2DObj_blue.waveimg[:,wave_ind_blue]
 rwaves = spec2DObj_red.waveimg[:,wave_ind_red]
-rmask = rwaves>bwaves.max()
+bzeroes = bwaves>10
+rzeroes = rwaves>10
+rmask = rwaves[rzeroes]>bwaves[bzeroes].max()
 
 if red_flag:
     if channel == 0:
-        img_data_blue = spec2DObj_blue.sciimg
-        img_data_red = spec2DObj_red.sciimg
-        img_data_red = np.append(spat_buffer,img_data_red,axis=1)[rmask]
+        img_data_blue = spec2DObj_blue.sciimg[bzeroes]
+        img_data_red = spec2DObj_red.sciimg[rzeroes]
+        img_data_red = np.append(spat_buffer[rzeroes],img_data_red,axis=1)[rmask]
         img_data = np.append(img_data_blue[:,:spat_max],img_data_red[:,:spat_max],axis=0)
         vmax = 15
         vmin = -3
     elif channel == 1:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        img_data_blue = img_data_blue[bzeroes]
         gpm_red = spec2DObj_red.bpmmask == 0
         img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red
-        img_data_red = np.append(spat_buffer, img_data_red, axis=1)[rmask]
+        img_data_red = img_data_red[rzeroes]
+        img_data_red = np.append(spat_buffer[rzeroes], img_data_red, axis=1)[rmask]
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 15
         vmin = -3
     elif channel == 2:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        img_data_blue = img_data_blue[bzeroes]
         gpm_red = spec2DObj_red.bpmmask == 0
         img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red
-        img_data_red = np.append(spat_buffer, img_data_red, axis=1)[rmask]
+        img_data_red = img_data_red[rzeroes]
+        img_data_red = np.append(spat_buffer[rzeroes], img_data_red, axis=1)[rmask]
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 4
         vmin = -1
@@ -230,27 +236,31 @@ if red_flag:
         raise ValueError('Expected channel value of 0, 1, or 2')
 elif blue_flag:
     if channel == 0:
-        img_data_blue = spec2DObj_blue.sciimg
-        img_data_red = spec2DObj_red.sciimg[rmask]
-        img_data_blue = np.append(spat_buffer,img_data_blue,axis=1)
+        img_data_blue = spec2DObj_blue.sciimg[bzeroes]
+        img_data_red = spec2DObj_red.sciimg[rzeroes][rmask]
+        img_data_blue = np.append(spat_buffer[bzeroes],img_data_blue,axis=1)
         img_data = np.append(img_data_blue[:,:spat_max],img_data_red[:,:spat_max],axis=0)
         vmax = 15
         vmin = -3
     elif channel == 1:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * gpm_blue
+        img_data_blue = img_data_blue[bzeroes]
         gpm_red = spec2DObj_red.bpmmask == 0
-        img_data_red = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red)[rmask]
-        img_data_blue = np.append(spat_buffer, img_data_blue, axis=1)
+        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * gpm_red
+        img_data_red = img_data_red[rzeroes][rmask]
+        img_data_blue = np.append(spat_buffer[bzeroes], img_data_blue, axis=1)
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 15
         vmin = -3
     elif channel == 2:
         gpm_blue = spec2DObj_blue.bpmmask == 0
         img_data_blue = (spec2DObj_blue.sciimg - spec2DObj_blue.skymodel) * np.sqrt(spec2DObj_blue.ivarmodel) * gpm_blue
+        img_data_blue = img_data_blue[bzeroes]
         gpm_red = spec2DObj_red.bpmmask == 0
-        img_data_red = ((spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red)[rmask]
-        img_data_blue = np.append(spat_buffer, img_data_blue, axis=1)
+        img_data_red = (spec2DObj_red.sciimg - spec2DObj_red.skymodel) * np.sqrt(spec2DObj_red.ivarmodel) * gpm_red
+        img_data_red = img_data_red[rzeroes][rmask]
+        img_data_blue = np.append(spat_buffer[bzeroes], img_data_blue, axis=1)
         img_data = np.append(img_data_blue[:, :spat_max], img_data_red[:, :spat_max], axis=0)
         vmax = 4
         vmin = -1
@@ -279,7 +289,6 @@ else:
     else:
         raise ValueError('Expected channel value of 0, 1, or 2')
 
-
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
 img_wave = img_hdu[(det - 1) * 11 + 8].data
@@ -290,8 +299,15 @@ img_wave[img_wave<10.0] = np.nan
 #wave_high = wave_lya+300
 #wave_low = J14_wave-800
 #wave_high = J14_wave+3000
-wave_low = 6000
-wave_high = 10000
+
+# J1438 Range
+#wave_low = 6000
+#wave_high = 10000
+
+# J1630 Range
+wave_low = 5500
+wave_high = 9000
+
 spec_low = np.where(img_wave[:, wave_ind_blue] > wave_low)[0][0]
 spec_high = np.where(img_wave[:, wave_ind_blue] < wave_high)[0][-1]
 
@@ -323,8 +339,6 @@ elif slit_high<spat_low:
     spat_high = slit_high
     spat_low += pix_diff
 
-
-
 if channel == 1:
     # 2D Sensfunc
 
@@ -333,7 +347,7 @@ if channel == 1:
     spectrograph = load_spectrograph('keck_deimos')
     exptime = spectrograph.get_meta_value(files[1],'exptime')
     #exptime = 1600.0 #Obj 4219
-    waveimg = np.append(bwaves,rwaves[rmask])
+    waveimg = np.append(bwaves[bzeroes],rwaves[rzeroes][rmask])
 
     sens_factor = flux_calib.get_sensfunc_factor(waveimg,sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
                                                  extrap_sens=True)
@@ -409,7 +423,7 @@ ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{OBJ 4219}', size=24)
+ax[0].set_title(r'\textbf{OBJ TEST}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.442)
 plt.savefig('test_figure.png', bbox_inches='tight')
