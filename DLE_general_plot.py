@@ -11,6 +11,7 @@ from pypeit import sensfunc
 from pypeit.core.coadd import multi_combspec
 from pypeit.core import flux_calib
 from astropy.io import fits
+from astropy.stats import sigma_clipped_stats
 from pypeit import utils
 from scipy.interpolate import interp1d
 from pypeit.spectrographs.util import load_spectrograph
@@ -26,7 +27,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_general_plot.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/ --blue 9 --red 30 --width 5 --channel 1
+# python DLE_general_plot.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_FWHM/Science_coadd/ --blue 15 --red 50 --width 5 --channel 1
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -67,10 +68,11 @@ file_path=args.file_path
 if file_path[-1] != '/':
     file_path += '/'
 files = glob(file_path+'*')
+files.sort()
 spec1d_file = files[0]
 spec2d_file = files[1]
-
-sobjs = specobjs.SpecObjs.from_fitsfile(spec1d_file, chk_version=True)
+#tell_file = files[2] #TODO Fix J1630B Telluric Issues
+sobjs = specobjs.SpecObjs.from_fitsfile(spec1d_file, chk_version=True) #TODO Get OBJ NAME & OTHER DETAILS
 
 blue_spec = sobjs[blue_exten - 1]
 red_spec = sobjs[red_exten - 1]
@@ -122,8 +124,7 @@ masks = ivars > 0.0
 
 wgmax = np.max(red_wave)
 wgmin = np.min(blue_wave[blue_wave > 10])
-
-new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
+wave_grid_mid, new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
                                                            wave_grid_min=wgmin,scale_method='auto')
 
 zero_skip = new_waves > 10
@@ -142,6 +143,7 @@ J14_wave = lya * (1 + 4.709)
 J16_wave = lya * (1 + 3.8101)
 
 # Atmospheric Effects #TODO Don't hard code in this telluric file.
+#tell_hdu = fits.open(tell_file)
 tell_hdu = fits.open('star_spec_tellcorr.fits')
 tell_waves = tell_hdu[1].data['wave']
 tell_spec = tell_hdu[1].data['telluric']
@@ -151,7 +153,12 @@ flux_corr = new_flux / (tell_corr + (tell_corr == 0))
 ivar_corr = (tell_corr > 0.0) * new_ivars * tell_corr * tell_corr
 mask_corr = (tell_corr > 0.0) * new_masks
 sig_corr = np.sqrt(utils.inverse(ivar_corr))
-
+'''
+flux_corr = new_flux
+ivar_corr = new_ivars
+mask_corr = new_masks
+sig_corr = new_sig
+'''
 # Composite Spectrum
 comp_file = open('deimos_z4composite.dat')
 comp_lines = comp_file.readlines()
@@ -172,8 +179,9 @@ comp_flux = (np.median(new_flux) / np.nanmedian(comp_flux)) * comp_flux
 
 # 2D Image
 det = sobjs[blue_exten - 1].DET
+det_num = int(det[-1])
 spec2DObj_blue = spec2dobj.Spec2DObj.from_file(spec2d_file, det, chk_version=False)
-spec2DObj_red = spec2dobj.Spec2DObj.from_file(spec2d_file, det+4, chk_version=False)
+spec2DObj_red = spec2dobj.Spec2DObj.from_file(spec2d_file, det.replace(det[-1],str(det_num+4)), chk_version=False)
 channel = int(args.channel)
 
 
@@ -291,7 +299,7 @@ else:
 
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
-img_wave = img_hdu[(det - 1) * 11 + 8].data
+img_wave = img_hdu[(det_num - 1) * 12 + 8].data[:,wave_ind_blue]
 img_wave[img_wave<10.0] = np.nan
 #redshift = float(args.redshift)
 #wave_lya = (1 + redshift) * lya
@@ -307,12 +315,11 @@ img_wave[img_wave<10.0] = np.nan
 # J1630 Range
 wave_low = 5500
 wave_high = 9000
+spec_low = np.where(img_wave > wave_low)[0][0]
+spec_high = np.where(img_wave < wave_high)[0][-1]
 
-spec_low = np.where(img_wave[:, wave_ind_blue] > wave_low)[0][0]
-spec_high = np.where(img_wave[:, wave_ind_blue] < wave_high)[0][-1]
-
-if np.sum(img_wave[:,wave_ind_blue]>wave_high) == 0:
-    img_wave_red = img_hdu[(det + 4 - 1) * 11 + 8].data
+if np.sum(img_wave>wave_high) == 0:
+    img_wave_red = img_hdu[(det_num + 4 - 1) * 12 + 8].data
     img_wave_red[img_wave_red < 10.0] = np.nan
     spec_high += np.where(img_wave_red[:, wave_ind_red] < wave_high)[0][-1]
 
@@ -323,9 +330,9 @@ wave_ind = np.max([wave_ind_red,wave_ind_blue])
 spat_low = wave_ind - 70
 spat_high = wave_ind + 70
 
-slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
-slit_low = img_hdu[(det - 1) * 11 + 10].data.left_init[slit_mask][0, 0]
-slit_high = img_hdu[(det - 1) * 11 + 10].data.right_init[slit_mask][0, 0]
+slit_mask = img_hdu[(det_num - 1) * 12 + 10].data.spat_id == blue_slit
+slit_low = img_hdu[(det_num - 1) * 12 + 10].data.left_init[slit_mask][0, 0]
+slit_high = img_hdu[(det_num - 1) * 12 + 10].data.right_init[slit_mask][0, 0]
 
 if (slit_low>spat_low)&(slit_high<spat_high):
     spat_low = slit_low
@@ -342,7 +349,7 @@ elif slit_high<spat_low:
 if channel == 1:
     # 2D Sensfunc
 
-    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
+    sens = sensfunc.SensFunc.from_file('keck_deimos_600ZD_sensfunc.fits')
 
     spectrograph = load_spectrograph('keck_deimos')
     exptime = spectrograph.get_meta_value(files[1],'exptime')
@@ -372,7 +379,7 @@ if channel == 1:
     vmax = 5*mad_std
     vmin = -2*mad_std
 
-
+# TODO USE ASTROPY sigma_clip_stats
 # 1D Flux Range
 wave_low_ind = np.where(np.abs(new_waves-wave_low)==np.min(np.abs(new_waves-wave_low)))[0][0]
 wave_high_ind = np.where(np.abs(new_waves-wave_high)==np.min(np.abs(new_waves-wave_high)))[0][0]
@@ -380,6 +387,7 @@ flux_range = flux_corr[wave_low_ind:wave_high_ind+1]
 
 rb_wave = red_wave[red_wave>10][0]
 
+embed()
 
 def forceAspect(ax,aspect):
     im = ax.get_images()
@@ -416,14 +424,15 @@ ax[1].text(J16_wave, .85, 'J1630', transform=trans, backgroundcolor='0.75')
 ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
-mad_std_1D = utils.nan_mad_std(flux_range)
-ax[1].set_ylim(flux_range.mean()-mad_std_1D*4,flux_range.mean()+mad_std_1D*6)
+sig_clip_1D = sigma_clipped_stats(flux_range)[2]
+ax[1].set_ylim(flux_range.mean()-sig_clip_1D*5,flux_range.mean()+sig_clip_1D*8)
 ax[1].set_xlim(wave_low, wave_high)
-ax[1].xaxis.set_minor_locator(MultipleLocator(10))
-ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
+ax[1].xaxis.set_minor_locator(MultipleLocator(100))
+ax[1].yaxis.set_minor_locator(MultipleLocator(0.25))
+#ax[1].yaxis.set_minor_locator(MultipleLocator(0.005))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{OBJ TEST}', size=24)
+ax[0].set_title(r'\textbf{(OBJ NAME))}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.442)
 plt.savefig('test_figure.png', bbox_inches='tight')

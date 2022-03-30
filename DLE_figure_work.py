@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_figure_work.py --file /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_Both/Science_coadd/ --redshift 4.95 --blue 9 --red 30 --width 5 --channel 1
+# python DLE_figure_work.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_FWHM/Science_coadd/ --redshift 4.95 --blue 15 --red 50 --width 5 --channel 1
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -38,7 +38,7 @@ def ivarsmooth(flux, ivar, window):
         window:
     Returns:
     '''
-    nflux = (flux.shape)[0]
+    nflux = flux.shape[0]
     halfwindow = int(np.floor((np.round(window) - 1) / 2))
     shiftarr = np.zeros((nflux, 2 * halfwindow + 1))
     shiftivar = np.zeros((nflux, 2 * halfwindow + 1))
@@ -70,6 +70,7 @@ if file_path[-1] != '/':
 files = glob(file_path+'*')
 spec1d_file = files[0]
 spec2d_file = files[1]
+tell_file = files[2]
 
 sobjs = specobjs.SpecObjs.from_fitsfile(spec1d_file, chk_version=True)
 
@@ -142,8 +143,8 @@ lya = 1215.67
 J14_wave = lya * (1 + 4.709)
 J16_wave = lya * (1 + 3.8101)
 
-# Atmospheric Effects #TODO Don't hard code in this telluric file.
-tell_hdu = fits.open('star_spec_tellcorr.fits')
+# Atmospheric Effects
+tell_hdu = fits.open(tell_file)
 tell_waves = tell_hdu[1].data['wave']
 tell_spec = tell_hdu[1].data['telluric']
 tell_corr = np.interp(new_waves, tell_waves, tell_spec, left=1, right=1)
