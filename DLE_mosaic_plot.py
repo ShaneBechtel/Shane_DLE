@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_general_plot.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_FWHM/Science_coadd/ --blue 15 --red 50 --width 5 --channel 1
+# python DLE_mosaic_plot.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1630B/branch_mosaic/setup_FWHM/Science_coadd/ --exten 59 --width 5 --channel 1 --flux True
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -82,7 +82,7 @@ new_waves = spec1d.OPT_WAVE
 zero_skip = new_waves > 10
 new_waves = new_waves[zero_skip]
 
-flux = args.flux
+flux = eval(args.flux)
 
 if flux:
     new_flux = spec1d.OPT_FLAM[zero_skip]
@@ -124,7 +124,6 @@ sig_corr = new_sig
 
 # 2D Image
 det = sobjs[exten - 1].DET
-embed()
 det_num = int(det[-1])
 spec2DObj = spec2dobj.Spec2DObj.from_file(spec2d_file, det, chk_version=True)
 channel = int(args.channel)
@@ -242,7 +241,6 @@ wave_low_ind = np.where(np.abs(new_waves-wave_low)==np.min(np.abs(new_waves-wave
 wave_high_ind = np.where(np.abs(new_waves-wave_high)==np.min(np.abs(new_waves-wave_high)))[0][0]
 flux_range = flux_corr[wave_low_ind:wave_high_ind+1]
 
-embed()
 
 def forceAspect(ax,aspect):
     im = ax.get_images()
@@ -284,10 +282,10 @@ ax[1].yaxis.set_minor_locator(MultipleLocator(0.25))
 #ax[1].yaxis.set_minor_locator(MultipleLocator(0.005))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{(OBJ NAME))}', size=24)
+ax[0].set_title(r'\textbf{(OBJ NAME)}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.442)
-plt.savefig('test_figure.png', bbox_inches='tight')
+#plt.savefig('test_figure.png', bbox_inches='tight')
 plt.show()
 plt.close()
 
