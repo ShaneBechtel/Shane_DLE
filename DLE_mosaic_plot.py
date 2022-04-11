@@ -267,6 +267,8 @@ ax[1].plot(new_waves, sig_corr, 'r:', linewidth=3, label=r'\textbf{Observed Unce
 
 #ax[1].axvline(J14_wave, color='y', linestyle='--', alpha=0.5)
 #ax[1].text(J14_wave, .85, 'J1438', transform=trans, backgroundcolor='0.75')
+ax[1].axvline(J16_wave, color='y', linestyle='--', alpha=0.5)
+ax[1].text(J16_wave, .85, 'J1630', transform=trans, backgroundcolor='0.75')
 
 ax[1].axvline(J16_wave, color='y', linestyle='--', alpha=0.5)
 ax[1].text(J16_wave, .85, 'J1630', transform=trans, backgroundcolor='0.75')

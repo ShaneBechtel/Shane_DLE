@@ -70,7 +70,7 @@ if file_path[-1] != '/':
 files = glob(file_path+'*')
 spec1d_file = files[0]
 spec2d_file = files[1]
-tell_file = files[2]
+#tell_file = files[2]
 
 sobjs = specobjs.SpecObjs.from_fitsfile(spec1d_file, chk_version=True)
 
@@ -125,7 +125,7 @@ masks = ivars > 0.0
 wgmax = np.max(red_wave)
 wgmin = np.min(blue_wave[blue_wave > 10])
 
-new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
+wave_grid_mid, new_waves, new_flux, new_ivars, new_masks = multi_combspec(waves, fluxes, ivars, masks, wave_grid_max=wgmax,
                                                            wave_grid_min=wgmin,scale_method='median')
 
 zero_skip = new_waves > 10
@@ -143,6 +143,7 @@ lya = 1215.67
 J14_wave = lya * (1 + 4.709)
 J16_wave = lya * (1 + 3.8101)
 
+'''
 # Atmospheric Effects
 tell_hdu = fits.open(tell_file)
 tell_waves = tell_hdu[1].data['wave']
@@ -152,6 +153,12 @@ tell_corr = np.interp(new_waves, tell_waves, tell_spec, left=1, right=1)
 flux_corr = new_flux / (tell_corr + (tell_corr == 0))
 ivar_corr = (tell_corr > 0.0) * new_ivars * tell_corr * tell_corr
 mask_corr = (tell_corr > 0.0) * new_masks
+sig_corr = np.sqrt(utils.inverse(ivar_corr))
+'''
+
+flux_corr = new_flux
+ivar_corr = new_ivars
+mask_corr = new_masks
 sig_corr = np.sqrt(utils.inverse(ivar_corr))
 
 # Composite Spectrum
@@ -173,6 +180,7 @@ comp_flux = (np.median(new_flux) / np.nanmedian(comp_flux)) * comp_flux
 
 # 2D Image
 det = sobjs[blue_exten - 1].DET
+detnum = int(det[-1])
 spec2DObj = spec2dobj.Spec2DObj.from_file(spec2d_file, det, chk_version=False)
 channel = int(args.channel)
 
@@ -195,7 +203,7 @@ else:
 
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
-img_wave = img_hdu[(det - 1) * 11 + 8].data
+img_wave = img_hdu[(detnum - 1) * 11 + 9].data
 img_wave[img_wave<10.0] = np.nan
 redshift = float(args.redshift)
 wave_lya = (1 + redshift) * lya
@@ -211,9 +219,9 @@ blue_slit = sobjs[blue_exten - 1].SLITID
 spat_low = wave_ind - 35
 spat_high = wave_ind + 35
 
-slit_mask = img_hdu[(det - 1) * 11 + 10].data.spat_id == blue_slit
-slit_low = img_hdu[(det - 1) * 11 + 10].data.left_init[slit_mask][0, 0]
-slit_high = img_hdu[(det - 1) * 11 + 10].data.right_init[slit_mask][0, 0]
+slit_mask = img_hdu[(detnum - 1) * 11 + 11].data.spat_id == blue_slit
+slit_low = img_hdu[(detnum - 1) * 11 + 11].data.left_init[slit_mask][0, 0]
+slit_high = img_hdu[(detnum - 1) * 11 + 11].data.right_init[slit_mask][0, 0]
 
 if (slit_low>spat_low)&(slit_high<spat_high):
     spat_low = slit_low
