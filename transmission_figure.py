@@ -80,9 +80,6 @@ mask_corr = new_masks
 sig_corr = new_sig
 
 
-
-#TODO Fit Continuum to Power Law
-
 #TODO Encountering Issue of trying to fit detector flux gap. Need to solve this first. Try hard coding for 8986 for now?
 
 
@@ -107,8 +104,6 @@ cont_fit = curve_fit(cont_powerlaw,x,y,maxfev=100000,bounds=([0,-np.inf,500],[np
 
 a,b,c = cont_fit[0]
 
-#TODO Normalize Spectrum by Power Law Fit
-
 good_waves = new_waves[mask_corr]
 good_flux = flux_corr[mask_corr]
 good_sig = sig_corr[mask_corr]
@@ -121,14 +116,6 @@ trans_flux[trans_flux<0.0] = 0.0
 
 trans_sig = sig_corr[mask_corr]/cont_flux
 
-# J1630 Range #TODO Change to be small region centered on Quasar Lya Wavelength (want about 100 angstroms of coverage)
-wave_low = J16_wave - 60
-wave_high = J16_wave + 30
-spec_low = np.where(good_waves > wave_low)[0][0]
-spec_high = np.where(good_waves < wave_high)[0][-1]
-
-
-#TODO Convert Wavelengths to Velocity with v=0 being Quasar Lya
 
 vel_range = 299792.458 * (good_waves-J16_wave)/J16_wave #km/s
 vel_low = -3000
@@ -139,11 +126,8 @@ plt.plot(vel_range,trans_flux)
 plt.plot(vel_range,trans_sig,'r:')
 plt.xlim(vel_low,vel_high)
 plt.ylim(-0.1,1.2)
+#plt.show()
 plt.close()
-
-
-
-#TODO Take Velocities and create distance analogue measurement
 
 
 
@@ -154,9 +138,8 @@ plt.plot(dist_range,trans_flux)
 plt.plot(dist_range,trans_sig,'r:')
 plt.xlim(-44,22)
 plt.ylim(-0.1,1.2)
+#plt.show()
 plt.close()
-
-#TODO Convert Plotting Process to Single Axis
 
 
 plt.rc('text', usetex=True)
@@ -185,6 +168,7 @@ ax.tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax.tick_params('both', length=10, width=1, which='minor')
 ax.set_title(r'\textbf{(OBJ NAME)}', size=24)
 #plt.savefig('test_figure.png', bbox_inches='tight')
+embed()
 plt.show()
 plt.close()
 
