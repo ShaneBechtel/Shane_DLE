@@ -144,7 +144,7 @@ J16_wave = lya * (1 + 3.8101)
 
 # Atmospheric Effects #TODO Don't hard code in this telluric file.
 #tell_hdu = fits.open(tell_file)
-tell_hdu = fits.open('star_spec_tellcorr.fits')
+tell_hdu = fits.open('../DLE_auxillary/star_spec_tellcorr.fits')
 tell_waves = tell_hdu[1].data['wave']
 tell_spec = tell_hdu[1].data['telluric']
 tell_corr = np.interp(new_waves, tell_waves, tell_spec, left=1, right=1)
@@ -349,7 +349,7 @@ elif slit_high<spat_low:
 if channel == 1:
     # 2D Sensfunc
 
-    sens = sensfunc.SensFunc.from_file('keck_deimos_600ZD_sensfunc.fits')
+    sens = sensfunc.SensFunc.from_file('../DLE_auxillary/keck_deimos_600ZD_sensfunc.fits')
 
     spectrograph = load_spectrograph('keck_deimos')
     exptime = spectrograph.get_meta_value(files[1],'exptime')

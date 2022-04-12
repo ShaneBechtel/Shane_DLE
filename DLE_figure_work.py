@@ -68,6 +68,7 @@ file_path=args.file_path
 if file_path[-1] != '/':
     file_path += '/'
 files = glob(file_path+'*')
+files.sort()
 spec1d_file = files[0]
 spec2d_file = files[1]
 #tell_file = files[2]
@@ -176,8 +177,7 @@ comp_data = np.array(comp_data)
 
 comp_waves = comp_data[:, 0]
 comp_flux = comp_data[:, 1]
-comp_flux = (np.median(new_flux) / np.nanmedian(comp_flux)) * comp_flux
-
+comp_flux = (np.median(new_flux[new_flux!=0.0]) / np.nanmedian(comp_flux[comp_flux!=0.0])) * comp_flux
 # 2D Image
 det = sobjs[blue_exten - 1].DET
 detnum = int(det[-1])
@@ -203,7 +203,7 @@ else:
 
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
-img_wave = img_hdu[(detnum - 1) * 11 + 9].data
+img_wave = img_hdu[(detnum - 1) * 12 + 8].data
 img_wave[img_wave<10.0] = np.nan
 redshift = float(args.redshift)
 wave_lya = (1 + redshift) * lya
@@ -219,9 +219,9 @@ blue_slit = sobjs[blue_exten - 1].SLITID
 spat_low = wave_ind - 35
 spat_high = wave_ind + 35
 
-slit_mask = img_hdu[(detnum - 1) * 11 + 11].data.spat_id == blue_slit
-slit_low = img_hdu[(detnum - 1) * 11 + 11].data.left_init[slit_mask][0, 0]
-slit_high = img_hdu[(detnum - 1) * 11 + 11].data.right_init[slit_mask][0, 0]
+slit_mask = img_hdu[(detnum - 1) * 12 + 10].data.spat_id == blue_slit
+slit_low = img_hdu[(detnum - 1) * 12 + 10].data.left_init[slit_mask][0, 0]
+slit_high = img_hdu[(detnum - 1) * 12 + 10].data.right_init[slit_mask][0, 0]
 
 if (slit_low>spat_low)&(slit_high<spat_high):
     spat_low = slit_low
@@ -239,7 +239,7 @@ elif slit_high<spat_low:
 if channel == 1:
     # 2D Sensfunc
 
-    sens = sensfunc.SensFunc.from_file('sens_2010sep24_d0924_0010.fits')
+    sens = sensfunc.SensFunc.from_file('../DLE_auxillary/sens_2010sep24_d0924_0010.fits')
 
     spectrograph = load_spectrograph('keck_deimos')
     exptime = spectrograph.get_meta_value(files[1],'exptime')
@@ -307,10 +307,10 @@ ax[1].xaxis.set_minor_locator(MultipleLocator(10))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{Obj 4219 Spectrum}', size=24)
+ax[0].set_title(r'\textbf{Obj \# Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.42)
-plt.savefig('spec_figure.png', bbox_inches='tight')
+#plt.savefig('spec_figure.png', bbox_inches='tight')
 plt.show()
 plt.close()
 
