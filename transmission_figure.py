@@ -7,6 +7,7 @@ from glob import glob
 from pypeit import specobjs
 from astropy.io import fits
 from scipy.optimize import curve_fit
+from pypeit import utils
 from IPython import embed
 
 
@@ -87,15 +88,31 @@ cont_spec_low = lya_wave + 30.0 #Angstroms
 waves_holder = new_waves[mask_corr]
 cont_spec_ind = np.where(waves_holder >= cont_spec_low)[0][0]
 
-ind_gap_8986 = int(300/0.6) #TODO Fix detector flux discontinuity and un-hard code this
+ind_gap_8986 = int(300/0.6) #TODO Fix detector flux discontinuity
+
+red_side_ind_low = np.where(waves_holder>=6800.)[0][0]
+red_side_ind_high = np.where(waves_holder<=7200)[0][-1]
+
+#TODO Manually fix Flux for 8986
 
 def cont_powerlaw(x, a, b, c):
     return a * (x/c)**b
 
-x = waves_holder[cont_spec_ind:cont_spec_ind+ind_gap_8986]
+
 y = flux_corr[mask_corr][cont_spec_ind:cont_spec_ind+ind_gap_8986]
 
-cont_fit = curve_fit(cont_powerlaw,x,y,maxfev=100000,bounds=([0,-np.inf,500],[np.inf,0,2000]))
+flux_stitch = np.median(y)/np.median(flux_corr[mask_corr][red_side_ind_low:red_side_ind_high])
+
+
+x = waves_holder[cont_spec_ind:]
+
+
+det_ind = np.where(x>=6700)[0][0]
+
+y_corr = flux_corr[mask_corr][cont_spec_ind:]
+y_corr[det_ind:] *= flux_stitch
+
+cont_fit = curve_fit(cont_powerlaw,x,y_corr,maxfev=100000,bounds=([0,-np.inf,1300*(1+z)-1],[np.inf,0,1300*(1+z)+1]))
 
 
 a,b,c = cont_fit[0]
@@ -107,36 +124,15 @@ good_sig = sig_corr[mask_corr]
 cont_flux = cont_powerlaw(good_waves,a,b,c)
 
 trans_flux = good_flux/cont_flux
-trans_flux[trans_flux>1.0] = 1.0
-trans_flux[trans_flux<0.0] = 0.0
-
 trans_sig = sig_corr[mask_corr]/cont_flux
 
 
 vel_range = 299792.458 * (good_waves-qso_wave)/qso_wave #km/s
 vel_low = -3000
-vel_high = 1500
-
-
-plt.plot(vel_range,trans_flux)
-plt.plot(vel_range,trans_sig,'r:')
-plt.xlim(vel_low,vel_high)
-plt.ylim(-0.1,1.2)
-#plt.show()
-plt.close()
+vel_high = 3000
 
 H0 = 67.7
-
 dist_range = vel_range / H0 #Mpc
-
-
-plt.plot(dist_range,trans_flux)
-plt.plot(dist_range,trans_sig,'r:')
-plt.xlim(-44,22)
-plt.ylim(-0.1,1.2)
-#plt.show()
-plt.close()
-
 
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
