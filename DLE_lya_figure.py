@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_figure_work.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_FWHM/Science_coadd/ --redshift 4.95 --blue 15 --red 50 --width 5 --channel 1
+# python DLE_lya_figure.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/det_all/setup_FWHM/Science_coadd/ --redshift 4.95 --blue 15 --red 50 --width 5 --channel 1
 
 def ivarsmooth(flux, ivar, window):
     '''

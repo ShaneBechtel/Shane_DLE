@@ -77,6 +77,8 @@ sobjs = specobjs.SpecObjs.from_fitsfile(spec1d_file, chk_version=True) #TODO Get
 
 spec1d = sobjs[exten - 1]
 
+obj_name = r'\textbf{' + spec1d.MASKDEF_OBJNAME.lstrip('0') + r'}'
+obj_name = r"{}".format(obj_name)
 new_waves = spec1d.OPT_WAVE
 
 zero_skip = new_waves > 10
@@ -284,7 +286,7 @@ ax[1].yaxis.set_minor_locator(MultipleLocator(0.25))
 #ax[1].yaxis.set_minor_locator(MultipleLocator(0.005))
 ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax[1].tick_params('both', length=10, width=1, which='minor')
-ax[0].set_title(r'\textbf{(OBJ NAME)}', size=24)
+ax[0].set_title(r'\textbf{(OBJ }' + obj_name + r'\textbf{)}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.442)
 #plt.savefig('test_figure.png', bbox_inches='tight')
