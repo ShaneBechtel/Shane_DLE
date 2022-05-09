@@ -7,7 +7,7 @@ from glob import glob
 from pypeit import specobjs
 from astropy.io import fits
 from scipy.optimize import curve_fit
-from pypeit import utils
+from matplotlib.ticker import MultipleLocator
 from IPython import embed
 
 
@@ -154,6 +154,8 @@ ax.set_ylim(-0.1,1.2)
 ax.set_xlim(vel_low, vel_high)
 ax.tick_params('both', length=20, width=2, which='major', labelsize=22)
 ax.tick_params('both', length=10, width=1, which='minor')
+ax.xaxis.set_minor_locator(MultipleLocator(100))
+ax.yaxis.set_minor_locator(MultipleLocator(0.05))
 
 
 ax2.plot(dist_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
