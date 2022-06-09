@@ -1,7 +1,7 @@
 import argparse
 
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import AutoMinorLocator, AutoLocator, MultipleLocator, FixedLocator
 import matplotlib as mpl
 import numpy as np
 from glob import glob
@@ -27,7 +27,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python DLE_lya_figure_mosaic.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1630B/branch_mosaic/setup_FWHM/Science_coadd/ --redshift 4.166 --exten 59 --width 5 --channel 1 --flux True
+# python DLE_lya_figure_mosaic.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1438A/final_redux/setup_FWHM/Science_coadd/ --redshift 5.15 --exten 35 --width 5 --channel 1 --flux True
 
 def ivarsmooth(flux, ivar, window):
     '''
@@ -183,6 +183,10 @@ wave_high = wave_lya+300
 wave_ind = int(np.round(sobjs[exten - 1].SPAT_PIXPOS))
 spec_low = np.where(img_wave > wave_low)[0][0]
 spec_high = np.where(img_wave< wave_high)[0][-1]
+
+wave_low = img_wave[spec_low]
+wave_high = img_wave[spec_high]
+
 blue_slit = sobjs[exten - 1].SLITID
 
 
@@ -273,12 +277,26 @@ ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
 mad_std_1D = utils.nan_mad_std(flux_range)
-ax[1].set_ylim(flux_range.mean()-mad_std_1D*4,flux_range.mean()+mad_std_1D*6)
+ax[1].set_ylim(flux_range.mean()-mad_std_1D*5,flux_range.mean()+mad_std_1D*15)
 ax[1].set_xlim(wave_low, wave_high)
-ax[1].xaxis.set_minor_locator(MultipleLocator(10))
-ax[1].yaxis.set_minor_locator(MultipleLocator(0.004))
-ax[1].tick_params('both', length=20, width=2, which='major', labelsize=22)
-ax[1].tick_params('both', length=10, width=1, which='minor')
+
+tick_label_size = 20
+major_tick_width = 2
+major_tick_length = 15
+minor_tick_width = 2
+minor_tick_length = 7
+
+ax[1].tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+ax[1].tick_params(axis='y', which='both', direction='in', left=True, right=True)
+ax[1].tick_params(axis="x", which='major', labelsize=tick_label_size, length=major_tick_length, width=major_tick_width)
+ax[1].tick_params(axis="x", which='minor', labelsize=tick_label_size, length=minor_tick_length, width=minor_tick_width)
+ax[1].tick_params(axis="y", which='major', labelsize=tick_label_size, length=major_tick_length, width=major_tick_width)
+ax[1].tick_params(axis="y", which='minor', labelsize=tick_label_size, length=minor_tick_length, width=minor_tick_width)
+ax[1].yaxis.set_minor_locator(AutoMinorLocator())
+ax[1].yaxis.set_major_locator(AutoLocator())
+ax[1].xaxis.set_minor_locator(AutoMinorLocator())
+ax[1].xaxis.set_major_locator(AutoLocator())
+
 ax[0].set_title(r'\textbf{Obj \# Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.42)
