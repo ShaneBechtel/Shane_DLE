@@ -7,7 +7,7 @@ from glob import glob
 from pypeit import specobjs
 from astropy.io import fits
 from scipy.optimize import curve_fit
-from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import AutoMinorLocator, AutoLocator, MultipleLocator, FixedLocator
 from IPython import embed
 
 
@@ -20,7 +20,7 @@ args = parser.parse_args()
 
 
 # Example Call
-# python transmission_figure.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1630B/branch_mosaic/setup_FWHM/Science_coadd/ --exten 59 --redshift 4.166
+# python transmission_figure.py --file_path /home/sbechtel/Documents/DEIMOS_Light_Echo/Targets/J1630B/branch_mosaic/setup_FWHM/Science_coadd/ --exten 59 --redshift 4.166 --qso J1630
 
 
 exten = int(args.exten)
@@ -88,31 +88,20 @@ cont_spec_low = lya_wave + 30.0 #Angstroms
 waves_holder = new_waves[mask_corr]
 cont_spec_ind = np.where(waves_holder >= cont_spec_low)[0][0]
 
-ind_gap_8986 = int(300/0.6) #TODO Fix detector flux discontinuity
-
-red_side_ind_low = np.where(waves_holder>=6800.)[0][0]
-red_side_ind_high = np.where(waves_holder<=7200)[0][-1]
-
-#TODO Manually fix Flux for 8986
-
 def cont_powerlaw(x, a, b, c):
     return a * (x/c)**b
 
-
-y = flux_corr[mask_corr][cont_spec_ind:cont_spec_ind+ind_gap_8986]
-
-flux_stitch = np.median(y)/np.median(flux_corr[mask_corr][red_side_ind_low:red_side_ind_high])
-
-
 x = waves_holder[cont_spec_ind:]
 
+y = flux_corr[mask_corr][cont_spec_ind:]
 
-det_ind = np.where(x>=6700)[0][0]
+#TODO This is fix for strange 4219 cont issue (Solution prefers positive power, may be indicative that this isn't LBG?)
+cont_gpm = (x > 7595) ^ (x < 7730) ^ (x >9600)
 
-y_corr = flux_corr[mask_corr][cont_spec_ind:]
-y_corr[det_ind:] *= flux_stitch
+x_corr = x[cont_gpm]
+y_corr = y[cont_gpm]
 
-cont_fit = curve_fit(cont_powerlaw,x,y_corr,maxfev=100000,bounds=([0,-np.inf,1300*(1+z)-1],[np.inf,0,1300*(1+z)+1]))
+cont_fit = curve_fit(cont_powerlaw,x_corr,y_corr,maxfev=100000,bounds=([0,-np.inf,1300*(1+z)-1],[np.inf,0,1300*(1+z)+1]))
 
 
 a,b,c = cont_fit[0]
@@ -152,10 +141,23 @@ ax.set_xlabel(r'\textbf{Velocity (km s$^{-1}$)}', size=30)
 ax.set_ylabel(r'\textbf{Transmission}', size=30)
 ax.set_ylim(-0.1,1.2)
 ax.set_xlim(vel_low, vel_high)
-ax.tick_params('both', length=20, width=2, which='major', labelsize=22)
-ax.tick_params('both', length=10, width=1, which='minor')
-ax.xaxis.set_minor_locator(MultipleLocator(100))
-ax.yaxis.set_minor_locator(MultipleLocator(0.05))
+
+tick_label_size = 20
+major_tick_width = 2
+major_tick_length = 15
+minor_tick_width = 2
+minor_tick_length = 7
+
+ax.tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
+ax.tick_params(axis='y', which='both', direction='in', left=True, right=True)
+ax.tick_params(axis="x", which='major', labelsize=tick_label_size, length=major_tick_length, width=major_tick_width)
+ax.tick_params(axis="x", which='minor', labelsize=tick_label_size, length=minor_tick_length, width=minor_tick_width)
+ax.tick_params(axis="y", which='major', labelsize=tick_label_size, length=major_tick_length, width=major_tick_width)
+ax.tick_params(axis="y", which='minor', labelsize=tick_label_size, length=minor_tick_length, width=minor_tick_width)
+ax.yaxis.set_minor_locator(AutoMinorLocator())
+ax.yaxis.set_major_locator(AutoLocator())
+ax.xaxis.set_minor_locator(AutoMinorLocator())
+ax.xaxis.set_major_locator(AutoLocator())
 
 
 ax2.plot(dist_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
