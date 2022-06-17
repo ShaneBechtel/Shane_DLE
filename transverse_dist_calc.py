@@ -96,7 +96,7 @@ DA = az * DCMT
 DA_Mpc = (c / H0) * DA
 kpc_DA = DA_Mpc / 206.264806
 DA_Gyr = (Tyr / H0) * DA
-embed()
+
 theta_rad = theta * pi / 180
 
 transverse_dist = theta_rad * DA_Mpc #Mpc
