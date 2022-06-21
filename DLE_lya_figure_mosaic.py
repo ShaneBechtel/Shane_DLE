@@ -138,7 +138,7 @@ comp_data = np.array(comp_data)
 
 comp_waves = comp_data[:, 0]
 comp_flux = comp_data[:, 1]
-comp_flux = (np.median(new_flux[new_flux!=0.0]) / np.nanmedian(comp_flux[comp_flux!=0.0])) * comp_flux
+#comp_flux = (np.median(new_flux[new_flux!=0.0]) / np.nanmedian(comp_flux[comp_flux!=0.0])) * comp_flux
 
 
 
@@ -187,6 +187,10 @@ spec_high = np.where(img_wave< wave_high)[0][-1]
 wave_low = img_wave[spec_low]
 wave_high = img_wave[spec_high]
 
+comp_low = np.where((1+redshift)*comp_waves >= wave_low)[0][0]
+comp_high = np.where((1+redshift)*comp_waves <= wave_high)[0][-1]
+comp_flux = (np.median(new_flux[spec_low:spec_high]) / np.nanmedian(comp_flux[comp_low:comp_high])) * comp_flux
+
 blue_slit = sobjs[exten - 1].SLITID
 
 
@@ -215,7 +219,8 @@ if flux:
     if channel == 1:
         # 2D Sensfunc
 
-        sens = sensfunc.SensFunc.from_file('../DLE_auxillary/sens_2010sep24_d0924_0010.fits')
+        #sens = sensfunc.SensFunc.from_file('../DLE_auxillary/sens_2010sep24_d0924_0010.fits')
+        sens = sensfunc.SensFunc.from_file('../DLE_auxillary/keck_deimos_600ZD_sensfunc.fits')
 
         spectrograph = load_spectrograph('keck_deimos')
         exptime = spectrograph.get_meta_value(files[1],'exptime')
@@ -224,8 +229,7 @@ if flux:
         sens_factor = flux_calib.get_sensfunc_factor(spec2DObj.waveimg[:,wave_ind],
                                                      sens.wave.squeeze(), sens.zeropoint.squeeze(), exptime,
                                                      extrap_sens=True)
-
-        sens_gpm = sens_factor < 100.0*np.nanmedian(sens_factor)
+        sens_gpm = sens_factor < 100.0 * np.nanmedian(sens_factor)
         sens_factor_masked = sens_factor*sens_gpm
         sens_factor_img = np.repeat(sens_factor_masked[:, np.newaxis], spec2DObj.waveimg[0].shape[0], #pseudo_dict['nspat']
                                                 axis=1)
@@ -297,7 +301,8 @@ ax[1].yaxis.set_major_locator(AutoLocator())
 ax[1].xaxis.set_minor_locator(AutoMinorLocator())
 ax[1].xaxis.set_major_locator(AutoLocator())
 
-ax[0].set_title(r'\textbf{Obj \# Spectrum}', size=24)
+ax[0].set_title(r'\textbf{Obj 18799 Spectrum}', size=24)
+#ax[0].set_title(r'\textbf{Obj \# Spectrum}', size=24)
 plt.tight_layout(h_pad=0)
 plt.subplots_adjust(hspace=-.42)
 #plt.savefig('spec_figure.png', bbox_inches='tight')
