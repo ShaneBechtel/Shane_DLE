@@ -155,7 +155,7 @@ else:
 
 # Figure Plotting
 img_hdu = fits.open(spec2d_file)
-img_wave = img_hdu[(det_num - 1) * 12 + 8].data[:,wave_ind] #TODO Make sure this indexing is still correct for Mosaic
+img_wave = img_hdu[(det_num - 1) * 12 + 8].data[:,wave_ind]
 img_wave[img_wave<10.0] = np.nan
 #redshift = float(args.redshift)
 #wave_lya = (1 + redshift) * lya
@@ -174,13 +174,8 @@ wave_high = 9000
 spec_low = np.where(img_wave > wave_low)[0][0]
 spec_high = np.where(img_wave < wave_high)[0][-1]
 
-#TODO Try and see what is necessary for Mosaic here
-'''
-if np.sum(img_wave>wave_high) == 0:
-    img_wave_red = img_hdu[(det_num + 4 - 1) * 12 + 8].data
-    img_wave_red[img_wave_red < 10.0] = np.nan
-    spec_high += np.where(img_wave_red[:, wave_ind_red] < wave_high)[0][-1]
-'''
+wave_low = img_wave[spec_low]
+wave_high = img_wave[spec_high]
 
 slit_id = sobjs[exten - 1].SLITID
 
@@ -208,6 +203,7 @@ if flux:
     if channel == 1:
         # 2D Sensfunc
 
+        #sens = sensfunc.SensFunc.from_file('../DLE_auxillary/keck_deimos_600ZD_sensfunc.fits')
         sens = sensfunc.SensFunc.from_file('../DLE_auxillary/keck_deimos_600ZD_sensfunc.fits')
 
         spectrograph = load_spectrograph('keck_deimos')
@@ -279,7 +275,7 @@ ax[1].set_xlabel(r'\textbf{Wavelength (\AA)}', size=30)
 ax[1].set_ylabel(r'$$\bf F_{\lambda} \quad (10^{-17} erg s^{-1} cm^{-2} \AA^{-1})$$', size=30)
 ax[1].legend(prop={"size": 20})
 sig_clip_1D = sigma_clipped_stats(flux_range)[2]
-ax[1].set_ylim(flux_range.mean()-sig_clip_1D*5,flux_range.mean()+sig_clip_1D*8)
+ax[1].set_ylim(flux_range.min()-sig_clip_1D*1,flux_range.max()+sig_clip_1D*1)
 ax[1].set_xlim(wave_low, wave_high)
 ax[1].xaxis.set_minor_locator(MultipleLocator(100))
 ax[1].yaxis.set_minor_locator(MultipleLocator(0.25))
