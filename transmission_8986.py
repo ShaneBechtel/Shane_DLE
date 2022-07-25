@@ -133,7 +133,7 @@ vel_range = 299792.458 * (good_waves-qso_wave)/qso_wave #km/s
 vel_low = -3000
 vel_high = 3000
 
-H0 = 67.7 # km / s Mpc
+H0 = 68.5 # km / s Mpc
 H_z = np.sqrt(H0**2 * (0.3*(4.8101)**3 + 0.7))
 dist_range = vel_range / H_z #Mpc
 comov_range = dist_range * (1+z) # Comoving distance cMpc
@@ -144,8 +144,8 @@ gamma_qso = 7.46286498 # Gamma_qso from Joe Code; 1e-12
 
 transverse_dist = 3.8996 # pMpc
 
-#wqso = gamma_qso_1cmpc/gamma_uvb #TODO Determine which is correct
-wqso = gamma_qso/gamma_uvb
+wqso = gamma_qso_1cmpc/gamma_uvb #TODO Determine which is correct
+#wqso = gamma_qso/gamma_uvb
 
 
 gamma_vals = gamma_uvb * (1.0 + wqso/(dist_range**2 + transverse_dist**2)) # Uses Proper distance; using values of 1e-12
@@ -173,6 +173,7 @@ trans = ax.get_xaxis_transform()
 ax.step(vel_range, trans_flux, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax.plot(vel_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
 ax.fill_between(vel_range[qso_uncertainty], 0, 1, transform=trans, color='gray', alpha=0.3)
+ax.plot(vel_range, np.exp(-1/gamma_vals), 'g--', linewidth=3, label=r'\textbf{Simulated Transmission}')
 ax.axvline(0, color='y', linestyle='--', alpha=0.5)
 ax.text(0, .9, qso.upper(), transform=trans, backgroundcolor='0.75')
 ax.set_xlabel(r'\textbf{Velocity (km s$^{-1}$)}', size=30)
@@ -201,10 +202,10 @@ ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.xaxis.set_major_locator(AutoLocator())
 
 
-#ax2.plot(dist_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
-ax2.plot(dist_range, np.exp(-1/gamma_vals), 'g--', linewidth=3, label=r'\textbf{Simulated Transmission}')
 ax2.xaxis.tick_top()
 ax2.yaxis.tick_right()
+#ax2.set_xlim((1+z)*vel_low/H_z, (1+z)*vel_high/H_z)
+#ax2.set_xlabel(r'\textbf{Distance (cMpc)}', size=30,labelpad=15)
 ax2.set_xlim(vel_low/H_z, vel_high/H_z)
 ax2.set_xlabel(r'\textbf{Distance (pMpc)}', size=30,labelpad=15)
 ax2.set_ylim(-0.1,1.2)
