@@ -133,31 +133,26 @@ vel_low = -3000
 vel_high = 3000
 
 H0 = 67.7 #TODO DON'T USE LOCAL H0, use H(z)!!!!!!!!!
-H_z = np.sqrt(H0**2 * (0.3*(4.83101)**3 + 0.7))
+H_z = np.sqrt(H0**2 * (0.3*(4.8101)**3 + 0.7))
 dist_range = vel_range / H_z #Mpc
 comov_range = dist_range * (1+z) # Comoving distance cMpc
 
-gamma_uvb = 1.03214425e-12 # Gamma_uvb from Nyx simulations
-gamma_qso_1cmpc = 2.62575329e-09 # Gamma_qso at 1 cMpc for wqso
-gamma_qso = 7.46286498e-12 # Gamma_qso from Joe Code
+gamma_uvb = 1.03214425 # Gamma_uvb from Nyx simulations; 1e-12
+gamma_qso_1cmpc = 2625.75329 # Gamma_qso at 1 cMpc for wqso; 1e-12
+gamma_qso = 7.46286498 # Gamma_qso from Joe Code; 1e-12
 
 transverse_dist = 3.8996 # pMpc
 
-wqso = gamma_qso_1cmpc/gamma_uvb
+#wqso = gamma_qso_1cmpc/gamma_uvb
+wqso = gamma_qso/gamma_uvb
 
 
-#gamma_vals = gamma_uvb * (1.0 + wqso/(dist_range**2 + transverse_dist**2)) # Uses Proper distance
-gamma_vals = gamma_uvb * (1.0 + wqso/(comov_range**2 + transverse_dist**2)) # Uses Comoving distance
-
-#lower_trans_ind = np.where(dist_range>-4)[0][0]
-#upper_trans_ind = np.where(dist_range<4)[0][-1]
-#lower_trans_ind = np.where(vel_range>-qso_sig)[0][0]
-#upper_trans_ind = np.where(vel_range<qso_sig)[0][-1]
+gamma_vals = gamma_uvb * (1.0 + wqso/(dist_range**2 + transverse_dist**2)) # Uses Proper distance; using values of 1e-12
+#gamma_vals = gamma_uvb * (1.0 + wqso/(comov_range**2 + ((1+z)*transverse_dist)**2)) # Uses Comoving distance
 
 # trans_mask = (dist_range>=-4) & (dist_range<=4)
-trans_mask = (vel_range>=-qso_sig) & (vel_range<=qso_sig)
-
-#trans_sig_comp(dist_range[lower_trans_ind:upper_trans_ind],trans_flux[lower_trans_ind:upper_trans_ind],trans_sig[lower_trans_ind:upper_trans_ind],gamma_vals[lower_trans_ind:upper_trans_ind])
+trans_mask = (vel_range>=-(qso_sig+50)) & (vel_range<=(qso_sig+50))
+embed()
 trans_sig_comp(dist_range[trans_mask],trans_flux[trans_mask],trans_sig[trans_mask],gamma_vals[trans_mask])
 
 
@@ -175,6 +170,7 @@ ax2 = fig.add_subplot(111,label='2',frame_on=False)
 
 trans = ax.get_xaxis_transform()
 ax.step(vel_range, trans_flux, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
+ax.plot(vel_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
 ax.fill_between(vel_range[qso_uncertainty], 0, 1, transform=trans, color='gray', alpha=0.5)
 ax.axvline(0, color='y', linestyle='--', alpha=0.5)
 ax.text(0, .9, qso.upper(), transform=trans, backgroundcolor='0.75')
@@ -201,10 +197,11 @@ ax.xaxis.set_minor_locator(AutoMinorLocator())
 ax.xaxis.set_major_locator(AutoLocator())
 
 
-ax2.plot(dist_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
+#ax2.plot(dist_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
+ax2.plot(dist_range, np.exp(-1/gamma_vals), 'g--', linewidth=3, label=r'\textbf{Simulated Transmission}')
 ax2.xaxis.tick_top()
 ax2.yaxis.tick_right()
-ax2.set_xlim(vel_low/H0, vel_high/H0)
+ax2.set_xlim(vel_low/H_z, vel_high/H_z)
 ax2.set_xlabel(r'\textbf{Distance (pMpc)}', size=30,labelpad=15)
 ax2.set_ylim(-0.1,1.2)
 ax2.tick_params('both', length=20, width=2, which='major', labelsize=22)
