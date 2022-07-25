@@ -8,6 +8,7 @@ from pypeit import specobjs
 from astropy.io import fits
 from scipy.optimize import curve_fit
 from matplotlib.ticker import AutoMinorLocator, AutoLocator, MultipleLocator, FixedLocator
+from astropy.stats import sigma_clipped_stats
 from transmission_significance import trans_sig_comp
 from IPython import embed
 
@@ -132,7 +133,7 @@ vel_range = 299792.458 * (good_waves-qso_wave)/qso_wave #km/s
 vel_low = -3000
 vel_high = 3000
 
-H0 = 67.7 #TODO DON'T USE LOCAL H0, use H(z)!!!!!!!!!
+H0 = 67.7 # km / s Mpc
 H_z = np.sqrt(H0**2 * (0.3*(4.8101)**3 + 0.7))
 dist_range = vel_range / H_z #Mpc
 comov_range = dist_range * (1+z) # Comoving distance cMpc
@@ -143,7 +144,7 @@ gamma_qso = 7.46286498 # Gamma_qso from Joe Code; 1e-12
 
 transverse_dist = 3.8996 # pMpc
 
-#wqso = gamma_qso_1cmpc/gamma_uvb
+#wqso = gamma_qso_1cmpc/gamma_uvb #TODO Determine which is correct
 wqso = gamma_qso/gamma_uvb
 
 
@@ -171,13 +172,16 @@ ax2 = fig.add_subplot(111,label='2',frame_on=False)
 trans = ax.get_xaxis_transform()
 ax.step(vel_range, trans_flux, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax.plot(vel_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
-ax.fill_between(vel_range[qso_uncertainty], 0, 1, transform=trans, color='gray', alpha=0.5)
+ax.fill_between(vel_range[qso_uncertainty], 0, 1, transform=trans, color='gray', alpha=0.3)
 ax.axvline(0, color='y', linestyle='--', alpha=0.5)
 ax.text(0, .9, qso.upper(), transform=trans, backgroundcolor='0.75')
 ax.set_xlabel(r'\textbf{Velocity (km s$^{-1}$)}', size=30)
 ax.set_ylabel(r'\textbf{Transmission}', size=30)
-ax.set_ylim(-0.1,1.2)
 ax.set_xlim(vel_low, vel_high)
+
+plot_range = (vel_range>=vel_low)&(vel_range<=vel_high)
+sig_clip_1D = sigma_clipped_stats(trans_flux[plot_range])[2]
+ax.set_ylim(trans_flux[plot_range].min()-sig_clip_1D*0.5,trans_flux[plot_range].max()+sig_clip_1D*0.5)
 
 tick_label_size = 20
 major_tick_width = 2
@@ -210,6 +214,9 @@ ax2.xaxis.set_label_position('top')
 ax2.yaxis.set_label_position('right')
 ax2.get_yaxis().set_visible(False)
 
+lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
+lines, labels = [sum(lol, []) for lol in zip(*lines_labels)]
+plt.legend(lines, labels)
 
 plt.savefig('trans_test.png')
 plt.show()
