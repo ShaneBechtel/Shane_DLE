@@ -144,8 +144,6 @@ dist_range = vel_range / H_z #Mpc
 comov_range = dist_range * (1+z_qso) # Comoving distance cMpc
 
 
-#TODO Determine which methods are correct
-
 gamma_uvb = 1.03214425e-12 # Gamma_uvb from Nyx simulations;
 gamma_qso_1cmpc = 2.62575329e-9 # Gamma_qso with input of 1 Mpc;
 
