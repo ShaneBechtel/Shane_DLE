@@ -6,7 +6,9 @@ import numpy as np
 from glob import glob
 from pypeit import specobjs
 from astropy.io import fits
+from astropy.table import Table
 from scipy.optimize import curve_fit
+from scipy.interpolate import interp1d
 from matplotlib.ticker import AutoMinorLocator, AutoLocator, MultipleLocator, FixedLocator
 from astropy.stats import sigma_clipped_stats
 from transmission_significance import trans_sig_comp
@@ -54,10 +56,12 @@ new_sig = 1 / np.sqrt(new_ivars)
 lya = 1215.67
 qso = args.qso
 if qso.lower() == 'j1630':
-    qso_wave = lya * (1 + 3.8101)
+    z_qso = 3.8101
+    qso_wave = lya * (1 + z_qso)
     qso_sig = 400 # km/s
 elif qso.lower() == 'j1438':
-    qso_wave = lya * (1 + 4.709)
+    z_qso = 4.709
+    qso_wave = lya * (1 + z_qso)
 else:
     raise Exception('Please enter a valid QSO option: J1438 or J1630')
 
@@ -134,27 +138,34 @@ vel_low = -3000
 vel_high = 3000
 
 H0 = 68.5 # km / s Mpc
-H_z = np.sqrt(H0**2 * (0.3*(4.8101)**3 + 0.7))
+E_z = np.sqrt(0.3*(1+z_qso)**3 + 0.7) # z = 3.8101
+H_z = H0*E_z
 dist_range = vel_range / H_z #Mpc
-comov_range = dist_range * (1+z) # Comoving distance cMpc
+comov_range = dist_range * (1+z_qso) # Comoving distance cMpc
 
-gamma_uvb = 1.03214425 # Gamma_uvb from Nyx simulations; 1e-12
-gamma_qso_1cmpc = 2625.75329 # Gamma_qso at 1 cMpc for wqso; 1e-12
-gamma_qso = 7.46286498 # Gamma_qso from Joe Code; 1e-12
+
+#TODO Determine which methods are correct
+
+gamma_uvb = 1.03214425e-12 # Gamma_uvb from Nyx simulations;
+gamma_qso_1cmpc = 2.62575329e-9 # Gamma_qso with input of 1 Mpc;
 
 transverse_dist = 3.8996 # pMpc
 
-wqso = gamma_qso_1cmpc/gamma_uvb #TODO Determine which is correct
-#wqso = gamma_qso/gamma_uvb
+wqso = gamma_qso_1cmpc/gamma_uvb
 
+boost = (1.0 + wqso/(comov_range**2 + ((1+z_qso)*transverse_dist)**2)) # Uses Comoving distance
 
-gamma_vals = gamma_uvb * (1.0 + wqso/(dist_range**2 + transverse_dist**2)) # Uses Proper distance; using values of 1e-12
-#gamma_vals = gamma_uvb * (1.0 + wqso/(comov_range**2 + ((1+z)*transverse_dist)**2)) # Uses Comoving distance
+#trans_mask = (vel_range>=-(qso_sig+50)) & (vel_range<=(qso_sig+50))
+trans_mask = (vel_range>=-(200)) & (vel_range<=(200))
 
-# trans_mask = (dist_range>=-4) & (dist_range<=4)
-trans_mask = (vel_range>=-(qso_sig+50)) & (vel_range<=(qso_sig+50))
-embed()
-trans_sig_comp(dist_range[trans_mask],trans_flux[trans_mask],trans_sig[trans_mask],gamma_vals[trans_mask])
+nyx_skewer_path = "/home/sbechtel/Documents/software/enigma/enigma/tpe/Nyx_test/rand_skewers_z381_ovt_tau.fits"
+
+boost_func = interp1d(comov_range,boost)
+
+simulated_comov, simulated_trans = trans_sig_comp(comov_range[trans_mask],trans_flux[trans_mask],trans_sig[trans_mask],boost_func,nyx_skewer_path)
+
+simulated_vel = (simulated_comov/(1+z_qso)) * H_z
+
 
 
 qso_uncertainty = (vel_range > -qso_sig) & (vel_range < qso_sig)
@@ -173,7 +184,7 @@ trans = ax.get_xaxis_transform()
 ax.step(vel_range, trans_flux, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax.plot(vel_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
 ax.fill_between(vel_range[qso_uncertainty], 0, 1, transform=trans, color='gray', alpha=0.3)
-ax.plot(vel_range, np.exp(-1/gamma_vals), 'g--', linewidth=3, label=r'\textbf{Simulated Transmission}')
+ax.plot(simulated_vel, simulated_trans[0], 'g--', linewidth=3, label=r'\textbf{Simulated Transmission}')
 ax.axvline(0, color='y', linestyle='--', alpha=0.5)
 ax.text(0, .9, qso.upper(), transform=trans, backgroundcolor='0.75')
 ax.set_xlabel(r'\textbf{Velocity (km s$^{-1}$)}', size=30)
@@ -204,7 +215,7 @@ ax.xaxis.set_major_locator(AutoLocator())
 
 ax2.xaxis.tick_top()
 ax2.yaxis.tick_right()
-#ax2.set_xlim((1+z)*vel_low/H_z, (1+z)*vel_high/H_z)
+#ax2.set_xlim((1+z_qso)*vel_low/H_z, (1+z_qso)*vel_high/H_z)
 #ax2.set_xlabel(r'\textbf{Distance (cMpc)}', size=30,labelpad=15)
 ax2.set_xlim(vel_low/H_z, vel_high/H_z)
 ax2.set_xlabel(r'\textbf{Distance (pMpc)}', size=30,labelpad=15)
