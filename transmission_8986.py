@@ -118,8 +118,10 @@ det_ind = np.where(x>=6700)[0][0]
 
 y_corr = flux_corr[mask_corr][cont_spec_ind:]
 y_corr[det_ind:] *= flux_stitch
+y_sig = sig_corr[mask_corr][cont_spec_ind:]
 
-cont_fit = curve_fit(cont_powerlaw,x,y_corr,maxfev=100000,bounds=([0,-np.inf,1300*(1+z)-1],[np.inf,0,1300*(1+z)+1]))
+cont_fit = curve_fit(cont_powerlaw,x,y_corr,maxfev=100000,bounds=([0,-np.inf,1300*(1+z)-1],[np.inf,0,1300*(1+z)+1]),
+                     sigma=y_sig)
 
 
 a,b,c = cont_fit[0]
@@ -153,18 +155,32 @@ wqso = gamma_qso_1cmpc/gamma_uvb
 
 boost = (1.0 + wqso/(comov_range**2 + ((1+z_qso)*transverse_dist)**2)) # Uses Comoving distance
 
-#trans_mask = (vel_range>=-(qso_sig+50)) & (vel_range<=(qso_sig+50))
-trans_mask = (vel_range>=-(200)) & (vel_range<=(200))
+trans_mask = (vel_range>=-(qso_sig+50)) & (vel_range<=(qso_sig+50))
+#trans_mask = (vel_range>=-(200)) & (vel_range<=(200))
 
 nyx_skewer_path = "/home/sbechtel/Documents/software/enigma/enigma/tpe/Nyx_test/rand_skewers_z381_ovt_tau.fits"
 
 boost_func = interp1d(comov_range,boost)
 
-simulated_comov, simulated_trans = trans_sig_comp(comov_range[trans_mask],trans_flux[trans_mask],trans_sig[trans_mask],boost_func,nyx_skewer_path)
+simulated_comov, simulated_trans = trans_sig_comp(comov_range[trans_mask],trans_flux[trans_mask],trans_sig[trans_mask],
+                                                  boost_func,nyx_skewer_path,qso_wave)
 
 simulated_vel = (simulated_comov/(1+z_qso)) * H_z
 
 
+signal_interp = interp1d(simulated_vel,simulated_trans)
+simul_mask = (vel_range>=simulated_vel[0])&(vel_range<=simulated_vel[-1])
+simul_trans_interp = signal_interp(vel_range[simul_mask])
+
+seed = 8986
+simulated_noise = np.random.normal(0.0,trans_sig[simul_mask],size=(1000,len(trans_sig[simul_mask])))
+simulated_trans_full = simul_trans_interp+simulated_noise
+
+sorted_trans_full = 1*simulated_trans_full
+sorted_trans_full.sort(axis=0)
+simulated_16p = sorted_trans_full[160,:]
+simulated_84p = sorted_trans_full[840,:]
+embed()
 
 qso_uncertainty = (vel_range > -qso_sig) & (vel_range < qso_sig)
 
@@ -182,7 +198,9 @@ trans = ax.get_xaxis_transform()
 ax.step(vel_range, trans_flux, 'k', linewidth=1, where='mid', label=r'\textbf{Observed Spectrum}')
 ax.plot(vel_range, trans_sig, 'r:', linewidth=3, label=r'\textbf{Observed Uncertainty}')
 ax.fill_between(vel_range[qso_uncertainty], 0, 1, transform=trans, color='gray', alpha=0.3)
-ax.plot(simulated_vel, simulated_trans[0], 'g--', linewidth=3, label=r'\textbf{Simulated Transmission}')
+ax.plot(vel_range[simul_mask], np.median(simulated_trans_full,axis=0), 'g--', linewidth=3, label=r'\textbf{Median of Simulated Transmission}')
+ax.plot(vel_range[simul_mask], simulated_16p, color='orange', linestyle=':', linewidth=3, label=r'\textbf{16th/84th Percentile of Simulated Transmission}')
+ax.plot(vel_range[simul_mask], simulated_84p, color='orange', linestyle=':', linewidth=3)
 ax.axvline(0, color='y', linestyle='--', alpha=0.5)
 ax.text(0, .9, qso.upper(), transform=trans, backgroundcolor='0.75')
 ax.set_xlabel(r'\textbf{Velocity (km s$^{-1}$)}', size=30)
