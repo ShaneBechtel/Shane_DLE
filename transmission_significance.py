@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import numpy.random as rand
 from astropy.table import Table
 from scipy.stats import norm
+from scipy.ndimage import gaussian_filter1d
 from IPython import embed
 
 
-def trans_sig_comp(dist, data, noise_levels, boost_func, skewer_path):
+def trans_sig_comp(dist, data, noise_levels, boost_func, skewer_path, lambda_obs):
     N_pix_data = len(data)
-
+    seed = 8986
     # weighting = norm(0,2)
     # weights = weighting.pdf(dist)
 
@@ -28,13 +29,27 @@ def trans_sig_comp(dist, data, noise_levels, boost_func, skewer_path):
 
     sim_boost = boost_func(rvec_cMpc)
 
-    #tau_skewers = skewers['TAU'] / sim_boost
-    tau_skewers = skewers['TAU']
+    tau_skewers = skewers['TAU'] / sim_boost
+    #tau_skewers = skewers['TAU']
     trans_skewers = np.exp(-tau_skewers)
 
-    summary_range = (rvec_cMpc >= dist[0]) & (rvec_cMpc <= dist[-1])
-    trans_stat = trans_skewers[:, summary_range].sum(axis=1) / summary_range.sum()
+    # Using resolution convolution
+    sig_coeff = 2*np.sqrt(2 * np.log(2))
+    dlam = 0.65 # From keck deimos documentation for 600ZD
+    sampling = (1.0 / 0.75) * 3.5 # Same ^^^
+    fwhm = (dlam * 3e5 / lambda_obs) * sampling
+    dvpix_hires = params['Ng']/params['VSIDE'] #TODO Verify if this is right or should be flipped?
+    pix_per_sigma = fwhm*dvpix_hires/sig_coeff
+    sig2pix = 1/pix_per_sigma
 
+    convolved_trans  = gaussian_filter1d(trans_skewers,pix_per_sigma,axis=1,mode='wrap')
+
+
+    summary_range = (rvec_cMpc >= dist[0]) & (rvec_cMpc <= dist[-1])
+    #trans_stat = trans_skewers[:, summary_range].sum(axis=1) / summary_range.sum()
+    trans_stat = convolved_trans[:, summary_range].sum(axis=1) / summary_range.sum()
+
+    rand.seed(seed)
     sig_vals = rand.normal(loc=0.0, scale=noise_levels, size=(1000, len(noise_levels))).sum(axis=1) / len(noise_levels)
     sig_vals += trans_stat
     sig_vals.sort()
@@ -67,4 +82,4 @@ def trans_sig_comp(dist, data, noise_levels, boost_func, skewer_path):
     plt.show()
     plt.close()
 
-    return rvec_cMpc, trans_skewers
+    return rvec_cMpc, convolved_trans
