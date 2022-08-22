@@ -18,10 +18,11 @@ gband_name = 'mosaic_QSOJ1630+0435_bg_med.fits'
 rband_name = 'mosaic_QSOJ1630+0435_rr_med.fits'
 iband_name = 'mosaic_QSOJ1630+0435_ri_med.fits'
 
-bands = ['u','g','r','i']
-band_paths = [uband_name,gband_name,rband_name,iband_name]
+bands = ['u', 'g', 'r', 'i']
+band_paths = [uband_name, gband_name, rband_name, iband_name]
 
 
+#J1630
 coords = '16:31:23.852 +04:30:21.493' # 8986
 #coords = '16:31:18.383 +04:38:29.937' # 22571
 #coords = '16:31:08.308 +04:36:21.113' # 18799
@@ -33,7 +34,7 @@ c = SkyCoord(coords, unit=(u.hourangle,u.deg))
 coords_ra = c.ra.degree
 coords_dec = c.dec.degree
 
-image_fits = fits.open(mosaic_path+uband_name)[0]
+image_fits = fits.open(mosaic_path+band_paths[0])[0]
 
 ra_center_val = image_fits.header['CRVAL1']
 ra_center_pix = image_fits.header['CRPIX1']
@@ -56,7 +57,7 @@ mpl.rcParams['axes.linewidth'] = 5
 fig, ax = plt.subplots(1, 4,sharex=True, sharey=True,figsize=(20,5))
 fig.subplots_adjust(wspace=0)
 
-for i in range(4):
+for i in range(len(band_paths)):
 
     if i!=0:
         image_fits = fits.open(mosaic_path+band_paths[i])[0]
@@ -88,3 +89,5 @@ for i in range(4):
 
 ax[0].set_ylabel('OBJ 8986',size=30)
 plt.show()
+
+embed()
