@@ -66,7 +66,7 @@ image_width = 30 #pixels
 
 mpl.rcParams['axes.linewidth'] = 5
 
-fig, ax = plt.subplots(1, 3,sharex=True, sharey=True,figsize=(20,5))
+fig, ax = plt.subplots(1, 3,sharex=True, sharey=True,figsize=(15,5))
 fig.subplots_adjust(wspace=0)
 
 for i in range(len(band_paths)):
@@ -91,7 +91,5 @@ for i in range(len(band_paths)):
     at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
     ax[i].add_artist(at)
 
-ax[0].set_ylabel('OBJ 8986',size=30)
+ax[0].set_ylabel('OBJ 7325',size=30)
 plt.show()
-
-embed()
