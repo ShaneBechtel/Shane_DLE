@@ -41,34 +41,3 @@ for i,file in enumerate(files):
 
 print(good_files)
 
-'''
-for i,file in enumerate(files):
-
-    patch_fits = fits.open(file)[1]
-
-    ref_ra = patch_fits.header['CRVAL1']
-    ref_dec = patch_fits.header['CRVAL2']
-
-    ra_pix_step = patch_fits.header['CD1_1']
-    dec_pix_step = patch_fits.header['CD2_2']
-
-    ra_pix_off = patch_fits.header['CRPIX1'] - (size/2)
-    dec_pix_off = patch_fits.header['CRPIX2'] - (size / 2)
-
-    patch_ra = (ra_pix_off*ra_pix_step) + ref_ra
-    patch_dec = (dec_pix_off*dec_pix_step) + ref_dec
-
-    ra_off = ra_val-patch_ra
-    dec_off = dec_val-patch_dec
-
-    dist = np.sqrt(ra_off**2 + dec_off**2)
-
-    if dist < min_val:
-
-        min_ind = i
-        min_val = dist
-        
-print(files[min_ind])
-
-'''
-

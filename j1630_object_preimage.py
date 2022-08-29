@@ -39,29 +39,14 @@ image_fits = fits.open(mosaic_path+band_paths[0])[0]
 
 w = WCS(image_fits.header)
 
-dec_index, ra_index = w.world_to_pixel(c)
+ra_index, dec_index = w.world_to_pixel(c)
 dec_index = int(dec_index)
 ra_index = int(ra_index)
 
-'''
-ra_center_val = image_fits.header['CRVAL1']
-ra_center_pix = image_fits.header['CRPIX1']
-ra_scale = image_fits.header['CD1_1']
-
-dec_center_val = image_fits.header['CRVAL2']
-dec_center_pix = image_fits.header['CRPIX2']
-dec_scale = image_fits.header['CD2_2']
-
-ra_pixel_offset = (coords_ra - ra_center_val)/ra_scale
-ra_index = int(np.round(ra_center_pix + ra_pixel_offset))
-
-dec_pixel_offset = (coords_dec - dec_center_val)/dec_scale
-dec_index = int(np.round(dec_center_pix + dec_pixel_offset))
-'''
 pix_scale = image_fits.header['CD1_1']
 pix_arc = -3600*pix_scale
 
-image_width = int(np.round(6/pix_arc)) # Create images with width 6"
+image_width = int(np.round(6/pix_arc)) # Create images with width 12"
 
 mpl.rcParams['axes.linewidth'] = 5
 

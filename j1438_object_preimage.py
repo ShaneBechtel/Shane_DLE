@@ -15,8 +15,8 @@ from IPython import embed
 mosaic_path = '/home/sbechtel/Downloads/unzip_hold/tobias_code/J1438/deepCoAdd/'
 bands = ['r','i','z']
 
-obj = '6364'
-#obj = '7325'
+#obj = '6364'
+obj = '7325'
 
 if obj == '6364':
     rband_name = 'calexp-HSC-R2-0-5.5.fits'
@@ -44,38 +44,16 @@ image_fits = fits.open(mosaic_path+band_paths[0])[1]
 
 w = WCS(image_fits.header)
 
-dec_index, ra_index = w.world_to_pixel(c)
+ra_index, dec_index = w.world_to_pixel(c)
 dec_index = int(dec_index)
 ra_index = int(ra_index)
 
 
-'''
-ra_ref_val = image_fits.header['CRVAL1']
-ra_ref_pix = image_fits.header['CRPIX1']
-ra_scale = image_fits.header['CD1_1']
-
-dec_ref_val = image_fits.header['CRVAL2']
-dec_ref_pix = image_fits.header['CRPIX2']
-dec_scale = image_fits.header['CD2_2']
-
-size = image_fits.header['NAXIS1']
-
-ra_cen_val = (ra_ref_pix - (size/2))*ra_scale + ra_ref_val
-dec_cen_val = (dec_ref_pix - (size/2))*dec_scale + dec_ref_val
-
-
-ra_pixel_offset = (coords_ra - ra_cen_val)/ra_scale
-test_ra_index = int(np.round((size/2) + ra_pixel_offset))
-
-dec_pixel_offset = (coords_dec - dec_cen_val)/dec_scale
-test_dec_index = int(np.round((size/2) + dec_pixel_offset))
-'''
-
 pix_scale = image_fits.header['CD1_1']
 pix_arc = -3600*pix_scale
 
-image_width = int(np.round(5/pix_arc)) # Create images with width 5"
-embed()
+image_width = int(np.round(5/pix_arc)) # Create images with width 10"
+
 mpl.rcParams['axes.linewidth'] = 5
 
 fig, ax = plt.subplots(1, 3,sharex=True, sharey=True,figsize=(15,5))
