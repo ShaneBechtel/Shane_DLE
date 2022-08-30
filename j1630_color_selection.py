@@ -1,52 +1,48 @@
 import numpy as np
+import astropy.units as u
+from astropy.table import Table
 import matplotlib.pyplot as plt
-from astropy.io import fits
 from IPython import embed
 
-color_path = '/home/sbechtel/Downloads/unzip_hold/Data/QSOJ1630+0435.cat'
+T = Table.read('/home/sbechtel/Downloads/unzip_hold/Data/QSOJ1630+0435.cat')
 
-color_fits = fits.open(color_path)[1]
+# E_BV    = Targets['E_BV'][i]
 
-umag = color_fits.data['u'] # 'u' or 'ua'?
-gmag = color_fits.data['g']
-rmag = color_fits.data['r']
-imag = color_fits.data['i']
+U_SN = T['u'] / T['ue']
+G_SN = T['g'] / T['ge']
+R_SN = T['r'] / T['re']
+I_SN = T['i'] / T['ie']
 
-u_r_mag = umag - rmag
-g_r_mag = gmag - rmag
-r_i_mag = rmag - imag
+#T['COL_IZ'] = T['HSC-I2_MAG_APER'] - T['HSC-Z_MAG_APER'] - E_BV * (1.698 - 1.263)
+#T['COL_RI'] = T['HSC-R2_MAG_APER'] - T['HSC-I2_MAG_APER'] - E_BV * (2.285 - 1.698)
+GR = T['g'] - T['r']
+RI = T['r'] - T['i']
 
-u_r_mag[u_r_mag>6.9] = 6.9
-g_r_mag[g_r_mag>4.1] = 4.1
-r_i_mag[r_i_mag<-0.9] = -0.9
+Sel = np.ones(len(T), dtype='bool')
+#Sel = Sel * (T['ra'] > 19.5) * (T['ra'] < 26.5)
+Sel = Sel * (R_SN>5) * (I_SN>5)
 
-u_r_cut = 4.8
-g_r_cut = 1.0
-r_i_cut = 1.0
+Sel1 = Sel
+Sel1 = Sel1 * (GR > 1.0)
+Sel1 = Sel1 * (RI < 1.0)
+Sel1 = Sel1 * (GR > 1.5 * RI + 0.8)
+Sel1 = Sel1 * ( T['r']>20 ) * ( T['r']<25.3)
 
-red_r_i = np.linspace((g_r_cut-0.8)/1.5,r_i_cut,100)
-red_g_r = np.linspace(g_r_cut,(1.5*r_i_cut+0.8),100)
-
-plt.scatter(r_i_mag, g_r_mag, color='b', s=0.1)
-plt.plot(red_r_i,red_g_r,'r')
-plt.hlines(g_r_cut,-2,(g_r_cut-0.8)/1.5,'r')
-plt.vlines(r_i_cut,(1.5*r_i_cut+0.8),5,'r')
-plt.xlim(-0.95,2.1)
-plt.ylim(-0.2,4.15)
-plt.xlabel('LBC R - LBC I in mag')
-plt.ylabel('LBC G - LBC R in mag')
-plt.tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
-plt.tick_params(axis='y', which='both', direction='in', left=True, right=True)
-plt.show()
+Sel2 = Sel1 * (U_SN < 3)
 
 
-plt.scatter(r_i_mag, u_r_mag, color='b', s=0.1)
-plt.hlines(u_r_cut,-2,r_i_cut,'r')
-plt.vlines(r_i_cut,u_r_cut,8,'r')
-plt.xlim(-0.95,2.1)
-plt.ylim(-0.2,6.95)
-plt.xlabel('LBC R - LBC I in mag')
-plt.ylabel('LBC U - LBC R in mag')
-plt.tick_params(axis='x', which='both', direction='in', top=True, bottom=True)
-plt.tick_params(axis='y', which='both', direction='in', left=True, right=True)
+plt.plot(np.fmax(-0.9, RI[Sel]), np.fmin(4.2, GR[Sel]), marker='.', lw=0, markersize=3, alpha=0.5)
+plt.plot([-99, 0.2 / 1.5, 1.0, 1.0], [1.0, 1.0, 2.3, 99], lw=1.5, ls='-', color='red')
+plt.xlabel("$\mathrm{LBC\:R - LBC\:I \; in \; mag}$")
+plt.ylabel("$\mathrm{LBC\:G - LBC\:R \; in \; mag}$")
+plt.xlim(-0.95, 2.1)
+plt.ylim(-0.2, 4.25)
+plt.tight_layout()
+
+plt.plot(np.fmax(-0.9, RI[Sel1]), np.fmin(4.2, GR[Sel1]), marker='.', lw=0, markersize=3,
+         color='darkorange', alpha=1.0)
+plt.plot(np.fmax(-0.9, RI[Sel2]), np.fmin(4.2, GR[Sel2]), marker='o', lw=0, markersize=3,
+         color='darkorange', alpha=1.0)
+
+#plt.savefig(Target['label'].split('+')[0] + '/' + 'ColorSelection_' + Targets['label'][i] + '_SEx.pdf')
 plt.show()
