@@ -159,16 +159,16 @@ def Findingchart( 	RA, Dec, Name=None, mag=0*u.mag, Filter=None, z=None, M1450=N
     # Fig 	= plt.figure(figsize=(8.5,10.3))
     SubPlot = [0.12, 0.08, 0.85, 0.83]
     Fig = plt.figure(figsize=(11.0, 11.5))
-    # figs	= [ aplpy.FITSFigure( 'Dummy.fits', figure=Fig, subplot=SubPlot) ]
-    figs = [aplpy.FITSFigure(
-        Get_SkyView_Image(RA=RA, Dec=Dec, Size=Size + .1 * u.arcmin, Scale=1.0 * u.arcsec, Survey='DSS2R'), north=True,
-        figure=Fig, subplot=SubPlot)]  ## Dummy to initialize
+    figs = []
+    #figs = [aplpy.FITSFigure(
+    #    Get_SkyView_Image(RA=RA, Dec=Dec, Size=Size + .1 * u.arcmin, Scale=1.0 * u.arcsec, Survey='DSS2R'), north=True,
+    #    figure=Fig, subplot=SubPlot)]  ## Dummy to initialize
 
     if ImgPath!=None:
         print(ImgPath)
         print(glob.glob(ImgPath +ImgSTR))
         # vmin, vmax	= np.nanmean( [ np.nanpercentile( fits.open(File)[1].data, [30, 99] ) for File in glob.glob(ImgPath+ImgSTR) ], axis=0 )
-        HDUList		= fits.open( "/home/sbechtel/Downloads/unzip_hold/tobias_code/J1438/deepCoAdd/calexp-HSC-R2-0-5.6.fits")
+        HDUList		= fits.open( "/home/sbechtel/Downloads/tobias_code/J1438/deepCoAdd/calexp-HSC-R2-0-5.6.fits")
         vmin, vmax      = np.nanpercentile( HDUList[1].data[ (-2000 < HDUList[1].data) * (HDUList[1].data < 99999) ] , [10, 90] ) * np.array([ 5.0, 20.18 ])
         if Name == 'J163055+043558':
             vmin = 1000
@@ -191,7 +191,7 @@ def Findingchart( 	RA, Dec, Name=None, mag=0*u.mag, Filter=None, z=None, M1450=N
                 continue
             figs += [aplpy.FITSFigure(Patch, north=False, figure=Fig, subplot=SubPlot, downsample=2)]
             figs[-1].show_colorscale(cmap=newcmp, stretch='arcsinh', vmin=vmin, vmax=vmax)
-    embed()
+
     ### GET SDSS Image if possible
     try:
         if SDSS == False: a = b
@@ -239,8 +239,8 @@ def Findingchart( 	RA, Dec, Name=None, mag=0*u.mag, Filter=None, z=None, M1450=N
     ### Mark Target
     figs[-1].show_circles(Pos.ra.deg, Pos.dec.deg, (9 * u.arcsec).to(u.deg).value, lw=1.4, color='teal')
     figs[-1].show_circles(RA.to(u.deg).value, Dec.to(u.deg).value, (8 * u.arcsec).to(u.deg).value, lw=1.4, color='red')
-    figs[-1].add_label((RA - 0 * u.arcsec).to(u.deg).value, (Dec - 25 * u.arcsec).to(u.deg).value, Name, ha='center',
-                       va='top', fontsize=11)
+    figs[-1].add_label((RA - 0 * u.arcsec).to(u.deg).value, (Dec - 25 * u.arcsec).to(u.deg).value, Name, ha='center',va='top')
+    #figs[-1].add_label((RA - 0 * u.arcsec).to(u.deg).value, (Dec - 25 * u.arcsec).to(u.deg).value, Name, ha='center',va='top', fontsize=11)
 
     ### Make Legend
     plt.gca().legend(loc='upper right', fontsize=10, frameon=True, numpoints=1, scatterpoints=1)
@@ -259,24 +259,40 @@ def Findingchart( 	RA, Dec, Name=None, mag=0*u.mag, Filter=None, z=None, M1450=N
     AimpointIM = Quantity([-95.20 * u.mm, 202.10 * u.mm]) / (0.728 * u.mm / u.arcsec)
     AimpointTV = Quantity([-73.25 * u.mm, 100.00 * u.mm]) / (0.728 * u.mm / u.arcsec)
     PlateScale = 0.728 * u.mm / u.arcsec
-    for pa, offsetSky, offsetFP in zip(PA, OffsetSky, OffsetFP):
-        AimIM = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
-            [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]], (offsetFP).T).T
-        AimTV = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
-            [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]],
-            (offsetFP - AimpointIM + AimpointTV).T).T
-        PolygonFoV = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
-            [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]],
-            (offsetFP - AimpointIM + FoV).T).T
-        PolygonTVG = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
-            [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]],
-            (offsetFP - AimpointIM + TVG).T).T
+    try:
+        for pa, offsetSky, offsetFP in zip(PA, OffsetSky, OffsetFP):
+            AimIM = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+                [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]], (offsetFP).T).T
+            AimTV = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+                [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]],
+                (offsetFP - AimpointIM + AimpointTV).T).T
+            PolygonFoV = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+                [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]],
+                (offsetFP - AimpointIM + FoV).T).T
+            PolygonTVG = Target + offsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+                [[np.cos(pa + PA0), -np.sin(pa + PA0)], [np.sin(pa + PA0), np.cos(pa + PA0)]],
+                (offsetFP - AimpointIM + TVG).T).T
+            figs[-1].show_polygons([PolygonFoV.to(u.deg).value], color='navy', lw=0.8, alpha=0.8)
+            #figs[-1].show_polygons([PolygonTVG.to(u.deg).value], color='crimson', lw=0.8, alpha=0.8)
+            figs[-1].show_markers(AimIM[0].to(u.deg).value, AimIM[1].to(u.deg).value, marker='+', lw=0.8, facecolor='navy',
+                                  edgecolor='navy', s=12 ** 2)
+            #figs[-1].show_markers(AimTV[0].to(u.deg).value, AimTV[1].to(u.deg).value, marker='+', lw=0.8,
+            #                      facecolor='crimson', edgecolor='crimson', s=12 ** 2)
+            print(AimIM, AimTV)
+    except:
+        #PA0 = 0.0
+        AimIM = Target + OffsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+            [[np.cos(PA + PA0), -np.sin(PA + PA0)], [np.sin(PA + PA0), np.cos(PA + PA0)]], (OffsetFP).T).T
+        AimTV = Target + OffsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+            [[np.cos(PA + PA0), -np.sin(PA + PA0)], [np.sin(PA + PA0), np.cos(PA + PA0)]],
+            (OffsetFP - AimpointIM + AimpointTV).T).T
+        PolygonFoV = Target + OffsetSky + np.array([-1 / np.cos(Dec), 1]) * np.dot(
+            [[np.cos(PA + PA0), -np.sin(PA + PA0)], [np.sin(PA + PA0), np.cos(PA + PA0)]],
+            (OffsetFP - AimpointIM + FoV).T).T
         figs[-1].show_polygons([PolygonFoV.to(u.deg).value], color='navy', lw=0.8, alpha=0.8)
-        figs[-1].show_polygons([PolygonTVG.to(u.deg).value], color='crimson', lw=0.8, alpha=0.8)
-        figs[-1].show_markers(AimIM[0].to(u.deg).value, AimIM[1].to(u.deg).value, marker='+', lw=0.8, facecolor='navy',
+        figs[-1].show_markers(AimIM[0].to(u.deg).value, AimIM[1].to(u.deg).value, marker='+', lw=0.8,
+                              facecolor='navy',
                               edgecolor='navy', s=12 ** 2)
-        figs[-1].show_markers(AimTV[0].to(u.deg).value, AimTV[1].to(u.deg).value, marker='+', lw=0.8,
-                              facecolor='crimson', edgecolor='crimson', s=12 ** 2)
         print(AimIM, AimTV)
 
     ### add title

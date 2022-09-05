@@ -43,7 +43,7 @@ def MakeDsimulatorTable( Targets, GuideStars, OutFile, CatRA='HSC-I2_ALPHAWIN_J2
 
 R = 1
 
-Targets=Table.read('/home/sbechtel/Downloads/unzip_hold/tobias_code/HSC_Hennawi_2019A_Targets_Final.fits')
+Targets=Table.read('/home/sbechtel/Downloads/tobias_code/HSC_Hennawi_2019A_Targets_Final.fits')
 
 for i, Target in enumerate( Targets ):
 	if Targets['label'][i]!='J1438+4314' or Targets['Drop'][i] != 'r' or i!=7: continue
@@ -57,7 +57,7 @@ for i, Target in enumerate( Targets ):
 	COL	= COL + [ 'HSC-Z_FLUX_APER',  'HSC-Z_flux_kron',  'HSC-Z_flux_psf',  'HSC-Z_cmodel_flux' ]
 	COL	= COL + [ 'HSC-R2_SN', 'HSC-I2_SN', 'HSC-Z_SN' ]
 
-	T	= Table.read( Targets['label'][i].split('+')[0] + '/CatalogShort_' + Targets['label'][i].split('+')[0]  + '_4.fits' )
+	T	= Table.read( '/home/sbechtel/Downloads/tobias_code/J1438/CatalogShort_J1438_4.fits' )
 
 	#T['HSC-R2_SN']	= T['HSC-R2_cmodel_flux'] / T['HSC-R2_cmodel_flux_err']
 	#T['HSC-I2_SN']	= T['HSC-I2_cmodel_flux'] / T['HSC-I2_cmodel_flux_err']
@@ -101,7 +101,18 @@ for i, Target in enumerate( Targets ):
 	Sel1 = Sel1 * (T['HSC-I2_MAG_ap'] > 20) * (T['HSC-I2_MAG_ap'] < 25.3) # From Other Script
 	#Sel1	= Sel1 * ( np.all(T['HSC-I2_FLAGS'] ) == 0 )
 
-	plt.plot( np.fmax(-0.6, T['COL_IZ'][Sel1]), np.fmin(2.6, T['COL_RI'][Sel1]), marker='o', lw=0, markersize=3, color='darkorange', alpha=1.0 )
+	Sel2 = np.ones( len(T), dtype='bool' )
+	Sel2 = Sel2 * ( T['HSC-I2_MAG_APER']>20 ) * ( T['HSC-I2_MAG_APER']<26.0 )
+	Sel2 = Sel2 * (T['COL_RI'] > 1.2)
+	Sel2 = Sel2 * (T['COL_IZ'] < 0.7)
+	Sel2 = Sel2 * (T['COL_RI'] > 1.5 * T['COL_IZ'] + 1.0)
+	Sel2 = Sel2 * (T['HSC-I2_MAG_APER'] > 20) * (T['HSC-I2_MAG_APER'] < 25.3)
+	Sel2 = Sel2 * ((T['IMAFLAGS_ISO'] == 32800) + (T['IMAFLAGS_ISO'] == 32802))
+	#Sel2 = Sel2 * np.array([NUMBER not in Reject['NUMBER'] for NUMBER in T['NUMBER']], dtype='bool')
+
+	#plt.plot( np.fmax(-0.6, T['COL_IZ'][Sel1]), np.fmin(2.6, T['COL_RI'][Sel1]), marker='o', lw=0, markersize=3, color='darkorange', alpha=1.0 )
+	plt.plot(np.fmax(-0.6, T['COL_IZ'][Sel2]), np.fmin(2.6, T['COL_RI'][Sel2]), marker='o', lw=0, markersize=3,
+			 color='darkorange', alpha=1.0)
 
 	plt.xlabel("$\mathrm{HSC\:I - HSC\:Z \; in \; mag}$")
 	plt.ylabel("$\mathrm{HSC\:R - HSC\:I \; in \; mag}$")
@@ -111,14 +122,17 @@ for i, Target in enumerate( Targets ):
 	plt.savefig( 'ColorSelection_' + Targets['label'][i] + '_4.pdf' )
 	plt.close()
 
-	#print(T[Sel1][COL])
-	#input()
+	'''
+	if input() != "":
+		continue
+	'''
 
 	from MakePostageStamps import MakePostageStamp as MakePostageStamp
 	CatRA='HSC-R2_ALPHAWIN_J2000'; CatDec='HSC-R2_DELTAWIN_J2000'
 	#CatRA='HSC-I2_RA'; CatDec='HSC-I2_Dec']
 
-	ImgPath = "/home/sbechtel/Downloads/unzip_hold/tobias_code/J1438/deepCoAdd/"
+	ImgPath = "/home/sbechtel/Downloads/tobias_code/J1438/deepCoAdd/"
+
 
 	for j, target in enumerate( T ):
 		if (Sel*Sel1)[j] == False : continue
@@ -129,21 +143,27 @@ for i, Target in enumerate( Targets ):
 					ImgPath = ImgPath, OutPath = './Charts4/', Size=12*u.arcsec, Radius=1.5*u.arcsec )
 
 
-	#T['PCode'] = 1000 - T['HSC-I2_MAG_cmodel'].quantity.to(u.mag).value * 10
-	
+	PA = (158.0)*u.deg
+	Mask_RA = 219.60966667
+	Mask_Dec = 43.23219444
+
+	OffsetFP = Targets['OffsetFP'].quantity[i][0]
+	OffsetFP[0] = ((Mask_RA-Targets['RA'][i])*u.deg).to(u.arcmin)
+	OffsetFP[1] = ((Mask_Dec-Targets['Dec'][i])*u.deg).to(u.arcmin)
+	embed()
 	Figs, figs, Catalog	= Findingchart(	Targets['RA'].quantity[i], Targets['Dec'].quantity[i],
 					z=Targets['Ref_Z'][i], M1450=Targets['M1450'].quantity[i],
-					PA= Targets['PA'].quantity[i], OffsetSky=Targets['OffsetSky'].quantity[i], OffsetFP=Targets['OffsetFP'].quantity[i],
+					PA= PA, OffsetSky=Targets['OffsetSky'].quantity[i][0], OffsetFP=OffsetFP, Size=25*u.arcmin,
 					Date=Time('2019-06-05'), Observatory='Keck', TVG_lim=17.0*u.mag, SDSS=False, Path=None, ImgPath=ImgPath, ImgSTR = 'calexp-HSC-I2-0-*.fits',
 					ExtCat=T[Sel*Sel1], ExtCatRA='HSC-I2_RA', ExtCatDec='HSC-I2_Dec', Radius=4*u.arcsec, ExtCatLabel='$\mathrm{HSC \; r-drop}$' )
 
-	#input()
+	'''#input()
 	MakeDsimulatorTable( T[Sel], Catalog, Targets['label'][i].split('+')[0] + '_Targets.dat', CatRA='HSC-R2_ALPHAWIN_J2000', CatDec='HSC-R2_DELTAWIN_J2000', CatFilter='HSC-I2', CatMag='MAG_cmodel', GuideMag='i_mean_psf' )
 	for j in range(3):
 		PA 	= Targets['PA'].quantity[i][j] + 90*u.deg
 		Offset	= -1 * np.array([ -1/np.cos(Targets['Dec'].quantity[i]), 1 ]) * np.dot( np.array( [ [ np.cos( PA ), -np.sin( PA ) ], [ np.sin( PA ), np.cos( PA ) ] ] ), Targets['OffsetFP'].quantity[i][j] )
 		print(( Targets['RA'].quantity[i] + Offset[0] ).to(u.deg).value/360*24, ( Targets['Dec'].quantity[i] + Offset[1] ).to(u.deg).value, Targets['PA'].quantity[i][j].to(u.deg).value)
-	#input()
+	#input()'''
 	plt.savefig( 'DropoutSelection_' + Targets['label'][i] + '_4.pdf', dpi=800 )
 
 
